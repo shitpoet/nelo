@@ -79,3 +79,13 @@ It's just launcher for `slowplay` to avoid mistakes in arguments.
 
 Also you can `batch` `slowplay` tournaments just making several lines in the `run` script.
 
+## `curve-fit.py` script
+
+Run with
+
+    pytohn curve-fit.py
+
+Requires `numpy`, `scipy` and `matplotlib` python modules.
+
+This is an example script which reads simulation results from `play-results.json`, then does curve fitting. It uses polynominal of the form `a x ** 2 + b x + c`, you can change the model. Then it plots model predictions composed with simulation results on the same plot.
+
