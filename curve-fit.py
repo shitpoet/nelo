@@ -37,15 +37,15 @@ x = np.array(log_nodes)
 # them scatter across the base line
 y = np.array(elos)
 
-# Test function with coefficients as parameters
-def test(x, a, b, c):
+# model function with coefficients as parameters
+def model(x, a, b, c):
     return a * x ** 2 + b * x + c
 
-# curve_fit() function takes the test-function
+# curve_fit() function takes the model-function
 # x-data and y-data as argument and returns
 # the coefficients a and b in param and
 # the estimated covariance of param in param_cov
-param, param_cov = curve_fit(test, x, y)
+param, param_cov = curve_fit(model, x, y)
 
 print('function coefficients:')
 print(param)
@@ -56,7 +56,7 @@ print(param_cov)
 # the coefficients given by curve-fit() function
 ans = []
 for xx in log_nodes:
-    ans.append( test(xx, *param) )
+    ans.append( model(xx, *param) )
 ans = np.array(ans)
 print('ans = f(x)')
 print(ans)
@@ -74,6 +74,7 @@ def elo_to_nodes(elo):
     # t == log2(nodes)
     # nodes == 2 ** t
     # elo == a * t ** 2 + b * t + c
+    # please note! I hard-coded `params` array here for simlplicity
     a, b, c = [ -2.69406196,  209.11966381, -230.07201856 - elo ]
     det = b ** 2 - 4 * a * c
     if det >= 0:
@@ -94,7 +95,7 @@ def elo_to_nodes(elo):
 #params = [ -2.69406196,  209.11966381, -230.07201856]
 #for _ in range(5):
     #n = random.random() * 1000
-    #res_elo = test(math.log2(n), *params)
+    #res_elo = model(math.log2(n), *params)
     #print('nodes', n, 'elo', res_elo)
     #nn = elo_to_nodes(res_elo)
     #print('nodes*', nn)

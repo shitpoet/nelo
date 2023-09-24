@@ -89,3 +89,6 @@ Requires `numpy`, `scipy` and `matplotlib` python modules.
 
 This is an example script which reads simulation results from `play-results.json`, then does curve fitting. It uses polynominal of the form `a x ** 2 + b x + c`, you can change the model. Then it plots model predictions composed with simulation results on the same plot.
 
+The true model is `a t ** 2 + b t + c`, where `t` is `log2` of number of nodes. This makes the problem more linear in my opinion. You can of course change that.
+
+The example of the inverse function also provided - `elo_to_nodes`. I used it to test the model.
