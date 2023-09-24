@@ -2,7 +2,7 @@
 
 Scripts to approximate ELO of a UCI chess engine for different number of nodes.
 
-Note: Throughout this document *ELO error* is accuracy with which the ELO is measured.
+Note: Throughout this document *ELO error* mean an accuracy with which the ELO is measured.
 
 The script executes `cutechess-cli` and `ordo` in interleaved fashion. `ordo` is executed after each game. And there's a stop criterion based on ELO error. All results are saved.
 
