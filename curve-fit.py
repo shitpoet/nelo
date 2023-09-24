@@ -64,10 +64,10 @@ print(ans)
 #'''Below 4 lines can be un-commented for plotting results
 #using matplotlib as shown in the first example. '''
 #
-#plt.plot(x, y, 'o', color ='red', label ="data")
-#plt.plot(x, ans, '--', color ='blue', label ="optimized data")
-#plt.legend()
-#plt.show()
+plt.plot(x, y, 'o', color ='red', label ="data")
+plt.plot(x, ans, '--', color ='blue', label ="optimized data")
+plt.legend()
+plt.show()
 
 def elo_to_nodes(elo):
     # elo == a * log2(nodes) ** 2 + b * log2(nodes) + c
@@ -89,15 +89,15 @@ def elo_to_nodes(elo):
         print('det < 0')
     return math.nan
 
-print()
-import random
-params = [ -2.69406196,  209.11966381, -230.07201856]
-for _ in range(5):
-    n = random.random() * 1000
-    res_elo = test(math.log2(n), *params)
-    print('nodes', n, 'elo', res_elo)
-    nn = elo_to_nodes(res_elo)
-    print('nodes*', nn)
-print()
-for e in range(50, 2700 + 50, 50):
-    print('elo', e, 'nodes*', (elo_to_nodes(e)))
+#print()
+#import random
+#params = [ -2.69406196,  209.11966381, -230.07201856]
+#for _ in range(5):
+    #n = random.random() * 1000
+    #res_elo = test(math.log2(n), *params)
+    #print('nodes', n, 'elo', res_elo)
+    #nn = elo_to_nodes(res_elo)
+    #print('nodes*', nn)
+#print()
+#for e in range(50, 2700 + 50, 50):
+    #print('elo', e, 'nodes*', (elo_to_nodes(e)))

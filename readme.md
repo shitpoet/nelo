@@ -8,6 +8,8 @@ The script executes `cutechess-cli` and `ordo` in interleaved fashion. `ordo` is
 
 Engine is tested against another engines with known ELO ratings ± error. (So called *gauntlet* tournament.)
 
+<img src='https://sshots.shitpoet.cc/2023-09-25--000913--660920311.png'>
+
 
 ## `engines` folder
 
