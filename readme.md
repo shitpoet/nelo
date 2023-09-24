@@ -67,19 +67,20 @@ Ratings per nodes from all simulations are saved in `play-results.json` file. Al
 See full usage information in the `play` script file.
 
 
-## `slowplay` script
+### `slowplay` script
 
 I run this script on my own pc with another script `slowplay` which severly limits CPU usage using `systemd-run`. So time control is changed appropriately (multiplied).
 
 See full usage information in the `slowplay` script file.
 
-## `run` script
+### `run` script
 
 It's just launcher for `slowplay` to avoid mistakes in arguments.
 
 Also you can `batch` `slowplay` tournaments just making several lines in the `run` script.
 
-## `curve-fit.py` script
+
+## Example: `curve-fit.py` script
 
 Run with
 
