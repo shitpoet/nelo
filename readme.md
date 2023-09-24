@@ -1,3 +1,4 @@
+## Nodes to ELO
 
 Scripts to approximate ELO of a UCI chess engine for different number of nodes.
 
@@ -8,7 +9,7 @@ The script executes `cutechess-cli` and `ordo` in interleaved fashion. `ordo` is
 Engine is tested against another engines with known ELO ratings ± error. (So called *gauntlet* tournament.)
 
 
-# `engines` folder
+## `engines` folder
 
 Each engine directory is named using template `elo_error_name`. Where `error` is error (like ±24 ELO). For example,
 
