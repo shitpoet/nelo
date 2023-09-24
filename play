@@ -1,0 +1,614 @@
+#!/usr/bin/env python3
+
+#todo: may be add bad opponents detection:
+#      * many wins and loses but no draws (is it ok?)
+#      * illegal moves all over the place
+#      * detect strange time mamagement (i've seen a lot of millisecond
+#        moves in 10+1 game from one of the engines)
+#        (mb see on this only after 12 book moves, and only after the main
+#        time goes over)
+#      * may be first do some other testing of engine besides the match itself
+#        (I've seen an around 2200 ELO engine which was unable to pass
+#        its own tests, but many engines don't have easy to run tests)
+#        so some universal pre-testing would be cool
+
+# additional parameters for simulations
+max_games = 10000
+target_error = 25
+
+
+def print_usage():
+    print('usage: play nodes elo-guess [max-elo-diff] [minimum-number-of-opponents] [time-control]')
+    print('       nodes - a UCI nodes parameter for the main engine')
+    print('       elo-guess - approximate ELO of the main engine')
+    print('           used only to select appropriate opponents')
+    print('       max-elo-diff - used only to select engines')
+    print('           default is 200 ELO diffirene max')
+    print('       minimum-number-of-opponents - optional argumement.')
+    print('           default is a minimum of 3 opponents.')
+    print('           if there are more suitable engines')
+    print('           they all will be used')
+    print('       time-control - time+increment like 2+1, 10+0')
+    print('           time in minutes, increment in seconds')
+    print('           default is 2+1')
+
+
+import traceback
+import math
+import re
+import sys
+import os
+from os import path
+from os import system
+import signal
+import subprocess
+from subprocess import PIPE, STDOUT
+from glob import glob
+import json
+
+plusminus = '±'
+
+# dump json with natural order of numeric keys
+def json_dump_natural(obj, file):
+    sorted_items = sorted(obj.items(), key=lambda item: int(item[0]))
+    sorted_obj = dict(sorted_items)
+    #print(sorted_obj)
+    json.dump(sorted_obj, file, indent=2)
+
+def engine_short_desc(e):
+    return '%s (%s ±%s)' % (e['name'], e['elo'], e['prec'])
+
+def engine_full_desc(e):
+    return '%s (%s ±%s) %s' % (e['name'], e['elo'], e['prec'], e['command'])
+
+def search_engines(dir):
+    engines = []
+    dirs = glob(path.join(dir, '*_*_*'))
+    for dir in dirs:
+        dir_name = path.basename(dir)
+        parts = dir_name.split('_')
+        if len(parts) >= 3:
+            if parts[0].isnumeric() and parts[1].isnumeric():
+                elo = int(parts[0])
+                prec = int(parts[1])
+                name_and_version = ' '.join(parts[2:])
+                name_and_version_low = name_and_version.lower()
+                files = glob(path.join(dir, '*'))
+                name = ''
+                command = ''
+                # search executable file corresponding to the
+                # directory name but maybe without version information
+                # so that f.ex. `tantabus-v2.0.0` matches `Tantabus`
+                for file in files:
+                    base_name_low = path.basename(file).lower()
+                    if name_and_version_low.startswith(base_name_low):
+                        for l in range(len(name_and_version), 0, -1):
+                            possible_name = name_and_version_low[0:l]
+                            #print('possible_name', possible_name)
+                            if base_name_low == possible_name:
+                                name = name_and_version[0:l]
+                                command = path.abspath(file)
+                                break
+                    if name != '': break
+                if name and command:
+                    #print(dir)
+                    engine = {
+                        'elo': elo,
+                        'prec': prec,
+                        'name': name,
+                        'command': command,
+                        'mentioned': False # used later
+                    }
+                    engines.append(engine)
+                else:
+                    print('notice: executable file for engine %s (%d) is not found' % (name_and_version, elo))
+                    print('files in the folder:')
+                    print('\n'.join(files))
+
+    engines.sort(key=lambda engine: engine['elo'])
+    return engines
+
+def generate_event_name(nodes, engines):
+    # excluded tc because I scale it with cpu limit
+    #event = '%s nodes vs %s @ tc %s' % (
+    event = '%s nodes vs %s' % (
+        f'{nodes:_}',
+        ', '.join([
+            engine_short_desc(e) for e in engines
+        ]),
+        #time_control
+    )
+    return event
+
+def generate_pgn_file_name(nodes):
+    #pgn_file = 'games/%s.pgn' % (
+        #re.sub(r'[^\x00-\x7F]+', '_',
+            #event.
+                #replace(' ', '_').
+                #replace('±', '_').
+                #replace('@', '_').
+                #replace('(', '_').
+                #replace(')', '_').
+                #replace(',', '_').
+                #replace('__', '_').
+                #replace('__', '_').
+                #replace('__', '_').
+                #replace('__', '_').
+                #removesuffix('_')
+        #))
+    #return 'games/%s.pgn' % f'{nodes:_}'  # bad sorting in file managers
+    return 'games/%s.pgn' % nodes
+
+def remove_dummy_pgn_result(pgn_file):
+    if path.exists(pgn_file):
+        with open(pgn_file, 'r') as file:
+            s = file.read()
+            ss = [line for line in s.split('\n') if '[Result "?"]' not in line]
+            s = '\n'.join(ss)
+        with open(pgn_file, 'w') as file:
+            file.write(s)
+
+def get_engine_rating(all_engines, name):
+    for e in all_engines:
+        if e['name'] == name:
+            return e['elo']
+    return 'rating unknown'
+
+# remove all-winners' / all-losers' games
+# note: this creates new pgn file, alternative solution
+# is to use `--exxlude` argument for `ordo`,
+# but I've thought about it too lately
+def remove_bad_players(all_engines, pgn_file, out_pgn_file, print):
+    if not path.exists(pgn_file): return False
+
+    event = '[Event "'
+    white = '[White "'
+    black = '[Black "'
+    win = '[Result "1-0"]'
+    loss = '[Result "0-1"]'
+    draw = '[Result "1/2-1/2"]'
+
+    engines = {}
+
+    def is_bad_player(e):
+        return (
+            (e['wins'] != 0 and e['draws'] == 0 and e['loses'] == 0) or
+            (e['wins'] == 0 and e['draws'] == 0 and e['loses'] != 0)
+        )
+
+    with open(pgn_file, 'r') as file:
+        s = file.read()
+        if s.strip() == '': return False
+        ss = s.split(event)
+        ss = [s for s in ss if s.strip() != '']
+        if len(ss) == 0: return False
+        #print('%s games before filtering' % len(ss))
+        for stage in ['count', 'remove']:
+            for i in range(len(ss)):
+                s = ss[i]
+                if (
+                    white in s and black in s and
+                    (win in s or loss in s or draw in s)
+                ):
+                    white_name = s.split(white)[1].split('"')[0]
+                    black_name = s.split(black)[1].split('"')[0]
+                    if white_name not in engines:
+                        engines[white_name] = {'wins': 0, 'loses': 0, 'draws': 0}
+                    if black_name not in engines:
+                        engines[black_name] = {'wins': 0, 'loses': 0, 'draws': 0}
+                    w = engines[white_name]
+                    b = engines[black_name]
+                    if stage == 'count':
+                        if win in s:
+                            w['wins'] += 1
+                            b['loses'] += 1
+                        elif loss in s:
+                            w['loses'] += 1
+                            b['wins'] += 1
+                        else:
+                            w['draws'] += 1
+                            b['draws'] += 1
+                    else:
+                        if is_bad_player(w):
+                            #print('filter out game with %s' % white_name)
+                            #print()
+                            #print(ss[i])
+                            #print()
+                            ss[i] = ''
+                        if is_bad_player(b):
+                            #print('filter out game with %s' % black_name)
+                            #print()
+                            #print(ss[i])
+                            #print()
+                            ss[i] = ''
+            if stage == 'count':
+                for (k, v) in engines.items():
+                    if is_bad_player(v):
+                        if v['wins'] > 0:
+                            print(
+                                'note: %s (%s) only have wins' % (
+                                    k, get_engine_rating(all_engines, k)
+                                )
+                            )
+                        else:
+                            print(
+                                'note: %s (%s) only have loses' % (
+                                    k, get_engine_rating(all_engines, k)
+                                )
+                            )
+                    #print(k, 'is bad player' if is_bad_player(v) else 'is normal player')
+    ss = [s for s in ss if s != '']
+    #print('%s games after filtering' % len(ss))
+    if len(ss) > 0 and not is_bad_player(engines['main']):
+        s = event + event.join(ss)
+        with open(out_pgn_file, 'w') as file:
+            file.write(s)
+        #print(engines)
+        return True
+    else:
+        return False
+
+def create_cutechess_cli_engines_json(engines):
+    #{
+    #   "command": "/home/ors/www/chess-continuum/dev/engines/lozza/lozza.sh",
+    #   "name": "lozza",
+    #   "protocol": "uci",
+    #   "workingDirectory": "/home/ors/www/chess-continuum/dev/engines/lozza"
+    #},
+    array = [{
+        'command': engine['command'],
+        'name': engine['name'],
+        'protocol': "uci",
+        'workingDirectory': path.dirname(engine['command'])
+    } for engine in engines]
+    array.append({
+        'command': path.abspath('engines/main/main'),
+        'name': 'main',
+        'protocol': "uci",
+        'workingDirectory': path.abspath('engines/main')
+    })
+    with open('engines.json', 'w') as file:
+        json.dump(array, file, indent=2, sort_keys=True)
+
+
+
+def main(args):
+    log_file = None  # assigned later when we now pgn file name
+
+    # override `print` to log everyting
+    def print(*args, sep=' ', end='\n'):
+        __builtins__.print(*args, sep=sep, end=end)
+        if log_file:
+            log_file.write(sep.join([str(arg) for arg in args]) + end)
+
+    # parse arguments
+    nodes = int(args[0])
+    elo_guess = int(args[1])
+    max_guess_elo_diff = int(args[2]) if len(args) >= 3 else 200
+    minimum_opponents = int(args[3]) if len(args) >= 4 else 3
+    time_control = args[4] if len(args) >= 5 else "2+1"
+
+    print('%s nodes (elo-guess %s ±%s), min %s opponents @ tc %s' % (nodes, elo_guess, max_guess_elo_diff, minimum_opponents, time_control))
+
+    print()
+    print('known engines:')
+    print()
+    all_engines = search_engines('engines')
+    for engine in all_engines:
+        print('*', engine_short_desc(engine))
+    engines = [
+        engine for engine in all_engines if abs(
+            engine['elo'] - elo_guess
+        ) <= max_guess_elo_diff
+    ]
+    print()
+    print('starting a match against:')
+    print()
+    for engine in engines:
+        print('*', engine_short_desc(engine))
+    print()
+    if len(engines) < minimum_opponents:
+        print('too few (%d) engines are in the requested elo range %d - %d. need at least %d.' % (len(engines), elo_guess - max_guess_elo_diff, elo_guess + max_guess_elo_diff, minimum_opponents))
+        exit(1)
+
+    create_cutechess_cli_engines_json(engines)
+
+    # prepare cutechess-cli
+
+    event = generate_event_name(nodes, engines)
+    #print(event)
+    pgn_file = generate_pgn_file_name(nodes)
+
+    remove_dummy_pgn_result(pgn_file)
+
+    log_file_name = pgn_file + '.log'
+    log_file = open(log_file_name, 'a', buffering=1)
+
+    engines_args = [
+        '-engine conf=main tc=inf nodes=%d' % nodes,
+        *['-engine conf=%s tc=%s' % (e['name'], time_control) for e in engines]
+    ]
+    #print(engines_args)
+    cc_cmd = 'cutechess-cli \
+        -concurrency 1 \
+        -tournament gauntlet \
+        -event "%s" \
+        %s \
+        -each \
+        proto=uci \
+        book=Perfect2019.ctg bookdepth=12 \
+        option.Hash=128 \
+        timemargin=9999 \
+        -rounds 1000 -games 2 -repeat \
+        -wait 1000 \
+        -draw movenumber=40 movecount=5 score=10 \
+        -resign movecount=5 score=1000 twosided=true \
+        -recover \
+        -ratinginterval 1 \
+        -pgnout %s' % (
+            event,
+            ' '.join(engines_args),
+            pgn_file
+        )
+        #-debug \
+    cc_cmd = re.sub(r'\s+', ' ', cc_cmd)
+    #print(cc_cmd)
+    #cc_exit_code = system(cc_cmd)
+    #print('cutechess-cli exited with code %d' % cc_exit_code)
+    #print()
+
+    # run simulation
+    #prev_anchors_csv = None  # this optimization is disabled for now
+    last_cc_rank_output = []  # ignored in the current version
+    elo_history = []
+    try:
+        games_played = 0 #todo: count real number of games in pgn_file
+        cc_process = subprocess.Popen(
+            "exec " + cc_cmd, shell=True, text=True,
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1)
+
+        def custom_exit(code):
+            cc_process.stdout.close()
+            os.killpg(os.getpgid(cc_process.pid), signal.SIGTERM)
+            cc_process.terminate()
+            cc_process.wait()
+            os.sync()
+            remove_dummy_pgn_result(pgn_file)
+            exit(code)
+
+        def run_ordo(all_engines, pgn_file, first_try=True):
+            nonlocal elo_history
+
+            if not path.exists(pgn_file):
+                #print("run_ordo: file %s does not exists" % pgn_file)
+                return
+
+            # prepare ordo to run
+            # ordo fails if an engine is in json but not in pgn, so...
+            for e in all_engines:
+                e['mentioned'] = False
+            unknown_players = []
+            with open(pgn_file, 'r+') as file:
+                s = file.read()
+                if s.strip() == '': return
+                for e in all_engines:
+                    name = e['name']
+                    if ('[White "%s"]' % name) in s or ('[Black "%s"]' % name) in s:
+                        e['mentioned'] = True
+                        #print('engine %s is mentioned in pgn file' % e['name'])
+                # find unknown players:
+                # 1. first remove known players
+                # 2. extract all the remaining players
+                s = re.sub(r'\[White "%s"\]|\[Black "%s"\]' % ('main', 'main'), '', s)
+                for e in all_engines:
+                    name = e['name']
+                    s = re.sub(r'\[White "%s"\]|\[Black "%s"\]' % (name, name), '', s)
+                unknown_players = re.findall(r'\[White "([^"]+)"\]', s)
+                unknown_players = list(set(unknown_players))
+                #print(exclude)
+
+            # run ordo
+
+            #note: for some reason `ordo` works incorrectly when
+            # multiple anchors flag is used but there's only single anchor
+            # so we have two different paths instead:
+            # 1. single anchor
+            # 2. multiple anchors
+
+            num_opponents = 0
+            for e in all_engines:
+                if e['mentioned']:
+                    num_opponents += 1
+            if num_opponents == 1: # single anchor
+                opponent = None
+                for e in all_engines:
+                    if e['mentioned'] and e['name'] != 'main':
+                        opponent = e
+                        break
+                ordo_cmd_template = "ordo/ordo -q -p %s -a %s -A '%s' -W -n1 -s1000 -U '0,1,2,3,4,5,6,7,8,9,10'"
+                ordo_cmd = ordo_cmd_template % (pgn_file, opponent['elo'], opponent['name'])
+            else: # multiple anchors
+
+                # prepare `anchors.csv` file
+                anchors_csv = '\n'.join(['"' + e['name'] + '"' + ', ' + str(e['elo']) for e in all_engines if e['mentioned']])
+                #if anchors_csv != prev_anchors_csv:
+                with open('anchors.csv', 'w') as file:
+                    #print(anchors_csv)
+                    file.write(anchors_csv)
+                    #prev_anchors_csv = anchors_csv
+
+                ordo_cmd_template = "ordo/ordo -q -p %s -m anchors.csv -W -n1 -s1000 -U '0,1,2,3,4,5,6,7,8,9,10'"
+                ordo_cmd = ordo_cmd_template % pgn_file
+
+            # exclude unknown players
+            if unknown_players:
+                if first_try:
+                    print(
+                        'note:',
+                        'these unknown players are excluded:',
+                        ', '.join(unknown_players)
+                    )
+                with open('unknown_players.txt', 'w') as file:
+                    file.write('\n'.join(unknown_players))
+                ordo_cmd += ' --exclude=unknown_players.txt'
+
+            #print(ordo_cmd)
+            ordo_process = subprocess.Popen(ordo_cmd, shell=True, text=True, stdout=PIPE, stderr=STDOUT, bufsize=1)
+            ordo_output = []
+            while True:
+                #print('readline')
+                line = ordo_process.stdout.readline()
+                #print('readline exited')
+                if not line: break
+                ordo_output.append(str(line))
+                #print('debug', str(line))
+            ordo_process.stdout.close()
+            ordo_exit_code = ordo_process.wait()
+            #print('debug', 'ordo exited with code %d' % ordo_exit_code)
+
+            # deal with results
+            if ordo_exit_code == 0:
+                for line in ordo_output:
+                    print('ordo:', str(line), end='')
+                # parse ordo output and extract elo and error
+                for line in ordo_output:
+                    s = re.sub(r'\s+', ' ', line).strip()
+                    ss = s.split(' ')
+                    if len(ss) == 13 and ss[1] == 'main' and ss[2] == ':' and ss[4] != '----':
+
+                        elo = float(ss[3])
+                        elo_error = float(ss[4])
+                        elo_games = int(ss[6])
+
+                        elo_result = (elo, elo_error, elo_games)
+
+                        if elo_history == [] or elo_history[-1] != elo_result:
+                            elo_history.append(elo_result)
+
+                        if len(elo_history) == 10:
+                            elo_history = elo_history[1::2]
+
+                        print('elo history:')
+                        for (elo, elo_error, elo_games) in elo_history:
+                            print('ELO:', elo, ' ', 'ERROR:', elo_error, ' ', '(after %s games)' % elo_games)
+                        print()
+
+                        #print('ELO:', elo, ' ', 'ERROR:', elo_error)
+
+                        # save result into json file
+                        obj = {}
+                        play_result_fn = 'play-results.json'
+                        if path.exists(play_result_fn) and os.path.getsize(play_result_fn) > 0:
+                            with open(play_result_fn, 'r') as file:
+                                s = file.read()
+                            if s.strip() != '':
+                                with open(play_result_fn, 'r') as file:
+                                    obj = json.load(file)
+                        with open(play_result_fn, 'w') as file:
+                            precs = '_'.join([('%s' % e['prec']) for e in all_engines if e['mentioned']])
+                            obj[str(nodes)] = '%s_%s__%s' % (elo, elo_error, precs)
+                            #json.dump(obj, file, indent=2, sort_keys=True)
+                            # dump json with natural sorting of keys
+                            json_dump_natural(obj, file)
+
+                        with open('play-results.csv', 'w') as file:
+                            for (k, v) in obj.items():
+                                k = str(k)
+                                elo = v.split('__')[0].split('_')[0]
+                                err = v.split('__')[0].split('_')[1]
+                                file.write('%s, %s, %s \n' % (k, elo, err))
+
+                        if elo_error <= target_error:
+                            print(
+                                'target error reached (%s <= %s)' %
+                                (elo_error, target_error))
+                            custom_exit(0)
+            else:
+                if any(['even after purging players with all-wins/all-losses' in line for line in ordo_output]):
+                    print('note: ordo detected disconnected groups')
+
+                    #for line in ordo_output:
+                        #print('ordo:', str(line), end='')
+                    #for line in last_cc_rank_output:
+                        #print('cutechess:', line, end='')
+
+                    #ordo_groups_file_name = 'ordo-groups.txt'
+                    #if path.exists(ordo_groups_file_name):
+                        #os.remove(ordo_groups_file_name)
+                    #system(ordo_cmd + ' -g %s' % ordo_groups_file_name)
+                    #if path.exists(ordo_groups_file_name):
+                        #with open(ordo_groups_file_name, 'r') as file:
+                            #print(file.read())
+                    #else:
+                        #print('warning: for some reason ordo did not create groups file')
+
+                    # remove all-winners / all-losers and try `ordo` again
+                    if first_try:
+                        alt_pgn_file = '/tmp/alt_ordo_%s' % path.basename(pgn_file)
+                        if remove_bad_players(all_engines, pgn_file, alt_pgn_file, print):
+                            #alt_ordo_cmd = ordo_cmd_template % alt_pgn_file
+                            #print(alt_ordo_cmd)
+                            #system(alt_ordo_cmd)
+                            run_ordo(all_engines, alt_pgn_file, False)
+                            os.remove(alt_pgn_file)
+                            return
+
+                else:
+                    for line in ordo_output:
+                        print('ordo:', str(line), end='')
+                    print('ordo exited with code %d' % ordo_exit_code)
+                    custom_exit(1)
+
+        # run ordo once before simulation to see current results if any
+        run_ordo(all_engines, pgn_file)
+        while True:
+            #line = cc_process.stderr.readline()
+            line = cc_process.stdout.readline()
+            #line = 'Finished game'
+            if not line: break
+            if line.startswith('Rank'):
+                last_cc_rank_output = [line]
+            if len(line.strip().split(' ')) >= 7 and line.strip().split(' ')[0].strip().isnumeric():
+                last_cc_rank_output.append(line)
+            if (
+                line.strip() == '' or
+                "doesn't have option" in line or
+                line.startswith('SPRT:') or
+                # skip rankings by cutechess-cli because we use ordo for ratings
+                line.startswith('Rank') or
+                len(line.strip().split(' ')) >= 7 and line.strip().split(' ')[0].strip().isnumeric()
+            ):
+                pass
+            else:
+                print('cutechess:', str(line), end='')
+            if line.startswith('Finished game'):
+                games_played += 1
+            #if line.startswith('SPRT:'):
+            if line.startswith('Finished game'):
+                run_ordo(all_engines, pgn_file)
+                if games_played >= max_games:
+                    print("games limit reached")
+                    custom_exit(1)
+
+        cc_process.stdout.close()
+        #cc_process.stderr.close()
+        cc_exit_code = cc_process.wait()
+        print('cutechess-cli exited with code %d' % cc_exit_code)
+    except KeyboardInterrupt:
+        # remove `[Result "?"]` otherwise `ordo` fails
+        remove_dummy_pgn_result(pgn_file)
+        custom_exit(1)
+    except Exception as e:
+        # force child processes to exit on any error
+        traceback.print_exc()
+        remove_dummy_pgn_result(pgn_file)
+        custom_exit(1)
+
+args = sys.argv[1:]
+if not ( len(args) >= 2 and len(args) <= 5 and all([arg.isnumeric() for arg in args[:-1]]) ):
+    print_usage()
+    exit(0)
+else:
+    main(args)
+
+

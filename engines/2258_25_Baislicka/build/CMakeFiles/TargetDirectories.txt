@@ -1,0 +1,4 @@
+/home/ors/www/chess-continuum/dev/chess-slam/engines/2258_25_Baislicka/build/CMakeFiles/baislicka.dir
+/home/ors/www/chess-continuum/dev/chess-slam/engines/2258_25_Baislicka/build/CMakeFiles/baislicka-test.dir
+/home/ors/www/chess-continuum/dev/chess-slam/engines/2258_25_Baislicka/build/CMakeFiles/edit_cache.dir
+/home/ors/www/chess-continuum/dev/chess-slam/engines/2258_25_Baislicka/build/CMakeFiles/rebuild_cache.dir

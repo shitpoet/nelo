@@ -1,0 +1,132 @@
+name: build
+
+on: [push, pull_request]
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [win-gcc, win-msvc32, win-msvc64, linux-gcc, linux-clang, macos-gcc, macos-clang]
+        cpu-level: ['old', 'popcnt', 'bmi2']
+        builtin-jsoncpp: ['true', 'false']
+        builtin-cxxopts: ['true', 'false']
+        static: ['true', 'false']
+
+        exclude:
+          - suite: macos-clang
+            cpu-level: 'bmi2'
+          - suite: macos-gcc
+            cpu-level: 'bmi2'
+          - suite: macos-clang
+            static: 'true'
+          - suite: macos-gcc
+            static: 'true'
+          - cpu-level: 'bmi2'
+            builtin-jsoncpp: 'false'
+          - cpu-level: 'old'
+            builtin-jsoncpp: 'false'
+          - builtin-jsoncpp: 'false'
+            builtin-cxxopts: 'true'
+          - builtin-jsoncpp: 'true'
+            builtin-cxxopts: 'false'
+
+        include:
+          - suite: linux-gcc
+            os: ubuntu-latest
+            compiler: gcc-8
+            cmake-generator: 'Unix Makefiles'
+          - suite: linux-clang
+            os: ubuntu-latest
+            compiler: clang-9
+            cmake-generator: 'Unix Makefiles'
+          - suite: macos-gcc
+            os: macos-latest
+            compiler: gcc-9
+            cmake-generator: 'Unix Makefiles'
+          - suite: macos-clang
+            os: macos-latest
+            compiler: clang-11
+            cmake-generator: 'Unix Makefiles'
+          - suite: win-gcc
+            os: windows-latest
+            compiler: gcc
+            cmake-generator: 'MinGW Makefiles'
+          - suite: win-msvc32
+            os: windows-latest
+            compiler: msvc32
+            cmake-generator: 'Visual Studio 16 2019'
+          - suite: win-msvc64
+            os: windows-latest
+            compiler: msvc64
+            cmake-generator: 'Visual Studio 16 2019'
+
+    runs-on: ${{ matrix.os }}
+
+    env:
+      CONFIG_FILE: ${{ github.workspace }}/.ci-config.json
+      STORAGE_FILE: ${{ github.workspace }}/.ci-storage.json
+      BUILDER_CMD: python3 "${{ github.workspace }}/tools/ci_build.py" -c "$CONFIG_FILE" -s "$STORAGE_FILE"
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Generate config
+      shell: bash
+      run: |
+        OS="${{ matrix.os }}"
+        OS="${OS%%-*}"
+        (
+        cat <<EOF
+        {
+          "os": "$OS",
+          "compiler": "${{ matrix.compiler }}",
+          "cpu-level": "${{ matrix.cpu-level }}",
+          "builtin-jsoncpp": ${{ matrix.builtin-jsoncpp }},
+          "builtin-cxxopts": ${{ matrix.builtin-cxxopts }},
+          "static": ${{ matrix.static }},
+          "cmake-build-type": "Release",
+          "cmake-generator": "${{ matrix.cmake-generator }}"
+        }
+        EOF
+        ) >"${{ env.CONFIG_FILE }}"
+
+    - name: Dump config
+      shell: bash
+      run: cat "${{ env.CONFIG_FILE }}"
+
+    - name: Configure
+      shell: bash
+      working-directory: ${{ github.workspace }}
+      run: ${{ env.BUILDER_CMD }} configure
+
+    - name: Dump storage
+      shell: bash
+      run: cat "${{ env.STORAGE_FILE }}"
+
+    - name: Install dependencies
+      shell: bash
+      run: ${{ env.BUILDER_CMD }} install
+
+    - name: Build dependencies
+      shell: bash
+      run: ${{ env.BUILDER_CMD }} build-dep
+
+    - name: Build
+      shell: bash
+      run: ${{ env.BUILDER_CMD }} build
+
+    - name: Test
+      shell: bash
+      run: ${{ env.BUILDER_CMD }} test
+
+    - name: Build (with diagnostics)
+      shell: bash
+      run: ${{ env.BUILDER_CMD }} build -d
+
+    - name: Test (with diagnostics)
+      shell: bash
+      run: ${{ env.BUILDER_CMD }} test -d

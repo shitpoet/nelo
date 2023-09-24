@@ -1,0 +1,3 @@
+# We need to enable at least one check, otherwise clang-tidy may yield an error
+Checks: -*,hicpp-avoid-goto
+HeaderFilterRegex: ''

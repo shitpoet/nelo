@@ -1,0 +1,10 @@
+/home/ors/www/chess-continuum/dev/chess-slam/engines/1857_21_sayuri/CMakeFiles/sayuri.dir
+/home/ors/www/chess-continuum/dev/chess-slam/engines/1857_21_sayuri/CMakeFiles/dist.dir
+/home/ors/www/chess-continuum/dev/chess-slam/engines/1857_21_sayuri/CMakeFiles/package.dir
+/home/ors/www/chess-continuum/dev/chess-slam/engines/1857_21_sayuri/CMakeFiles/package_source.dir
+/home/ors/www/chess-continuum/dev/chess-slam/engines/1857_21_sayuri/CMakeFiles/edit_cache.dir
+/home/ors/www/chess-continuum/dev/chess-slam/engines/1857_21_sayuri/CMakeFiles/rebuild_cache.dir
+/home/ors/www/chess-continuum/dev/chess-slam/engines/1857_21_sayuri/CMakeFiles/list_install_components.dir
+/home/ors/www/chess-continuum/dev/chess-slam/engines/1857_21_sayuri/CMakeFiles/install.dir
+/home/ors/www/chess-continuum/dev/chess-slam/engines/1857_21_sayuri/CMakeFiles/install/local.dir
+/home/ors/www/chess-continuum/dev/chess-slam/engines/1857_21_sayuri/CMakeFiles/install/strip.dir

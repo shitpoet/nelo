@@ -1,0 +1,7 @@
+bin
+build
+obj
+tags
+*.swp
+test.txt
+tmp/

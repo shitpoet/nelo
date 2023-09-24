@@ -1,0 +1,11 @@
+*#
+engines/_*
+engines.json
+anchors.csv
+unknown_players.txt
+games/*
+play-results.csv
+play-results.json
+crafty-bench
+f5.cfg
+scrap

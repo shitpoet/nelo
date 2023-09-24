@@ -1,0 +1,257 @@
+#!/usr/bin/env python3
+# This file is part of SoFCheck
+#
+# Copyright (c) 2022 Alexander Kernozhitsky and SoFCheck contributors
+#
+# SoFCheck is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# SoFCheck is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with SoFCheck.  If not, see <https://www.gnu.org/licenses/>.
+
+import argparse
+import os
+import shutil
+import subprocess
+import sys
+
+SOURCE_DIR = '@PROJECT_SOURCE_DIR@'
+BINARY_DIR = '@PROJECT_BINARY_DIR@'
+CMAKE_EXECUTABLE = '@CMAKE_COMMAND@'
+GIT_EXECUTABLE = '@GIT_EXECUTABLE@'
+PYTHON_EXECUTABLE = '@PYTHON_EXECUTABLE@'
+CXX_COMPILER_ID = '@CMAKE_CXX_COMPILER_ID@'
+CXX_COMPILER = '@CMAKE_CXX_COMPILER@'
+EXECUTABLE_SUFFIX = '@CMAKE_EXECUTABLE_SUFFIX@'
+IS_CLANG = (CXX_COMPILER_ID.find('Clang') != -1)
+GIT_FOUND = ('@Git_FOUND@'.lower() == 'true')
+if IS_CLANG:
+    PROFILE_TRAIN_FILE = '@PROFILE_TRAIN_FILE@'
+    PROFILE_USE_FILE = '@PROFILE_USE_FILE@'
+else:
+    PROFILE_PATH = '@PROFILE_PATH@'
+
+
+def src_path(path):
+    return os.path.join(*([SOURCE_DIR] + path))
+
+
+def bin_path(path):
+    return os.path.join(*([BINARY_DIR] + path))
+
+
+def target_path(path):
+    if isinstance(path, str):
+        path = [path]
+    path[-1] += EXECUTABLE_SUFFIX
+    return bin_path(path)
+
+
+def git(*args):
+    if not GIT_FOUND:
+        raise RuntimeError('Git not found')
+    return subprocess.check_output([GIT_EXECUTABLE] + list(args))
+
+
+def write_stderr(string):
+    sys.stderr.write(string + '\n')
+    sys.stderr.flush()
+
+
+FEATURES_PATH = src_path(['src', 'eval', 'features.json'])
+
+
+def do_rebuild(jobs=0, target=None):
+    cmdline = [CMAKE_EXECUTABLE, '--build', BINARY_DIR]
+    if jobs == 0:
+        cmdline += ['-j']
+    else:
+        cmdline += ['-j', str(jobs)]
+    if target is not None:
+        cmdline += ['-t', target]
+    subprocess.check_call(cmdline)
+
+
+def rebuild(jobs=0, with_pgo=False):
+    if not with_pgo:
+        do_rebuild(jobs=jobs)
+        return
+
+    try:
+        write_stderr('Cleaning up...')
+        if IS_CLANG:
+            if os.path.exists(PROFILE_TRAIN_FILE):
+                os.remove(PROFILE_TRAIN_FILE)
+            if os.path.exists(PROFILE_USE_FILE):
+                os.remove(PROFILE_USE_FILE)
+        else:
+            if os.path.exists(PROFILE_PATH):
+                shutil.rmtree(PROFILE_PATH)
+
+        write_stderr('Building with profiling support...')
+        subprocess.check_call(
+            [CMAKE_EXECUTABLE, BINARY_DIR, '-DPGO_BUILD_TYPE=TRAIN'])
+        do_rebuild(jobs=jobs, target='sofcheck')
+
+        write_stderr('Running on test positions to gather profiling data...')
+        subprocess.check_call([
+            PYTHON_EXECUTABLE,
+            src_path(['tools', 'run_test_positions.py']),
+            target_path('sofcheck')])
+
+        if IS_CLANG:
+            write_stderr('Gathering profile...')
+            llvm_profdata = subprocess.check_output(
+                [CXX_COMPILER,
+                 '-print-prog-name=llvm-profdata']).strip().decode()
+            write_stderr(f'llvm-profdata binary is located at {llvm_profdata}')
+            subprocess.check_call([llvm_profdata, 'merge', PROFILE_TRAIN_FILE,
+                                   '-o', PROFILE_USE_FILE])
+
+        write_stderr('Building final executable...')
+        subprocess.check_call(
+            [CMAKE_EXECUTABLE, BINARY_DIR, '-DPGO_BUILD_TYPE=USE'])
+        do_rebuild(jobs=jobs)
+    finally:
+        subprocess.check_call(
+            [CMAKE_EXECUTABLE, BINARY_DIR, '-DPGO_BUILD_TYPE=NONE'])
+
+
+def git_save():
+    branch = git('rev-parse', '--abbrev-ref', 'HEAD').strip()
+    if branch == 'HEAD':
+        branch = git('rev-parse', 'HEAD').strip()
+    stash_msg = git('stash', 'push', '-m', 'Temporary stash by owl.py')
+    stashed = stash_msg.find(b'Temporary stash by owl.py') != -1
+    return (branch, stashed)
+
+
+def git_restore(saved_state):
+    branch, stashed = saved_state
+    git('checkout', branch)
+    if stashed:
+        git('stash', 'pop')
+
+
+def copy_with_perms(src, dst):
+    shutil.copyfile(src, dst)
+    shutil.copymode(src, dst)
+
+
+def show_owl(args):
+    print('''\
+   ^ ^
+   @,@
+  ((_))
+   ^ ^
+''', end='')
+
+
+def show_weights(args):
+    subprocess.check_call([target_path('show_weights'), '-f', FEATURES_PATH])
+
+
+def apply_weights(args):
+    subprocess.check_call([target_path('apply_weights'), '-f', FEATURES_PATH])
+    if not args.no_rebuild:
+        rebuild()
+
+
+def make_dataset(args):
+    cmdline = [target_path('make_dataset'), '-f', FEATURES_PATH] + args.flags
+    subprocess.check_call(cmdline)
+
+
+def build(args):
+    def exe_name(tag):
+        name = 'sofcheck' if not tag else 'sofcheck_' + tag
+        return os.path.join(args.dest_dir, name + EXECUTABLE_SUFFIX)
+
+    if args.jobs < 0:
+        raise RuntimeError('Number of jobs must be non-negative')
+
+    if not args.tags:
+        rebuild(jobs=args.jobs, with_pgo=args.pgo)
+        try:
+            copy_with_perms(target_path('sofcheck'), exe_name(''))
+        except shutil.SameFileError:
+            pass
+        return
+
+    if not GIT_FOUND:
+        raise RuntimeError('Git not found')
+
+    saved_state = git_save()
+    try:
+        for idx, tag in enumerate(args.tags):
+            write_stderr(f'Building SoFCheck version {tag}...')
+            if tag.startswith('-'):
+                raise RuntimeError('Tags starting with "-" are forbidden')
+            git('checkout', tag)
+            rebuild(jobs=args.jobs, with_pgo=args.pgo)
+            exe_tag = str(idx + 1) if args.numbers else tag
+            copy_with_perms(target_path('sofcheck'), exe_name(exe_tag))
+    finally:
+        git_restore(saved_state)
+
+
+parser = argparse.ArgumentParser(
+    description='Script to run SoFCheck utilites more conveniently')
+parser.set_defaults(func=show_owl)
+subparsers = parser.add_subparsers(
+    help='command to execute', dest='cmd')
+
+weights_parser = subparsers.add_parser(
+    'weights', aliases=['w', 'wt'], help='manipulate feature weights')
+weights_subparsers = weights_parser.add_subparsers(
+    help='subcommand to execute', dest='subcmd', required=True)
+show_parser = weights_subparsers.add_parser(
+    'show', aliases=['s'], help='show feature weights')
+show_parser.set_defaults(func=show_weights)
+apply_parser = weights_subparsers.add_parser(
+    'apply', aliases=['a'], help='apply feature weights')
+apply_parser.set_defaults(func=apply_weights)
+apply_parser.add_argument(
+    '-B', '--no-rebuild', help='do not rebuild the engine after apply',
+    action='store_true')
+
+dataset_parser = subparsers.add_parser(
+    'dataset', aliases=['d', 'ds'], help='create a dataset via make_dataset')
+dataset_parser.add_argument(
+    'flags', nargs='*', help='arguments for make_dataset')
+dataset_parser.set_defaults(func=make_dataset)
+
+build_parser = subparsers.add_parser(
+    'build', aliases=['b', 'bl'],
+    help='rebuild SoFCheck, possibly from various git tags')
+build_parser.add_argument(
+    'tags', nargs='*',
+    help='git tags from which to rebuild the engine. '
+         'If empty, build current version')
+build_parser.add_argument(
+    '-d', '--dest-dir', help='directory to put binaries', action='store',
+    default='.')
+build_parser.add_argument(
+    '-p', '--pgo', action='store_true',
+    help='Use profile-guided optimizations')
+build_parser.add_argument(
+    '-j', '--jobs', action='store',
+    default=0, type=int, help='use given number of jobs for parallel build')
+build_parser.add_argument(
+    '-n', '--numbers', action='store_true',
+    help='use numbers instead of git tags in executable names')
+build_parser.set_defaults(func=build)
+
+args = parser.parse_args()
+try:
+    args.func(args)
+except Exception as exc:
+    etype = type(exc).__name__
+    sys.exit(f'Error {etype}: {exc}')

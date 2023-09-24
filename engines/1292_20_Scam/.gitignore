@@ -1,0 +1,6 @@
+/target
+Cargo.lock
+.idea
+.cargo/config
+
+*.exe

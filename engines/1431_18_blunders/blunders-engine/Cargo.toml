@@ -1,0 +1,39 @@
+[package]
+authors = ["Paulo Lemus <plemus@hawaii.edu>"]
+description = "UCI chess engine core"
+keywords = ["chess", "engine", "blunder", "checkmate", "game"]
+repository = "https://github.com/paulolemus/blunders"
+homepage = "https://github.com/paulolemus/blunders"
+edition = "2018"
+readme = "README.md"
+license = "GPL-3.0-only"
+name = "blunders-engine"
+publish = true
+version = "0.1.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+# Pseudorandom numbers for Zobrist Hashing. TODO: optionally remove to precompute.
+rand = "0.8.4" 
+arrayvec = "0.7.1"
+
+[dev-dependencies]
+criterion = "0.3.5"
+num_cpus = "1.13"
+
+[[bench]]
+name = "perft"
+harness = false
+
+[[bench]]
+name = "mates"
+harness = false
+
+[[bench]]
+name = "ttd"
+harness = false
+
+[[bench]]
+name = "zobrist"
+harness = false

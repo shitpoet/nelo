@@ -1,0 +1,1978 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=0.5, maximum-scale=2.0, user-scalable=1" />
+<link rel="stylesheet" type="text/css" href="res/common.css" />
+<script type="text/javascript" src="res/jquery-2.1.3.min.js"></script>
+<script type="text/javascript" src="res/common.js"></script>
+<title>Sayuri - UCI Chess Engine</title>
+</head>
+<body>
+<header>
+<h1>Sayuri - UCI Chess Engine</h1>
+<a href="index.html">&gt;&gt; Go to Top Page</a>
+</header>
+<div class="root_div">
+<section class="main_contents">
+<h1 id="message-symbols-of-engine-object">Message Symbols of Engine Object</h1>
+<p>"Message Symbol" is a symbol to operate a chess engine object.  </p>
+<ol>
+<li>Generate a chess engine object by <code>(gen-engine)</code> function.</li>
+<li>Use the engine object as function and give "Message Symbol"
+   to its 1st argument.</li>
+</ol>
+<h2 id="contents">Contents</h2>
+<ul>
+<li><a href="#getting-squares">Getting squares</a></li>
+<li><a href="#getting-pieces">Getting pieces</a></li>
+<li><a href="#getting-states-of-game">Getting states of game</a></li>
+<li><a href="#setting-states-of-game">Setting states of game</a></li>
+<li><a href="#placing-pieces">Placing pieces</a></li>
+<li><a href="#getting-candidate-moves">Getting candidate moves</a></li>
+<li><a href="#predicate-functions">Predicate functions</a></li>
+<li><a href="#taking-a-move">Taking a move</a></li>
+<li><a href="#uci-command">UCI Command</a></li>
+<li><a href="#searching-the-best-move">Searching the best move</a></li>
+<li><a href="#hash-and-threads">Hash and threads</a></li>
+<li><a href="#analyse-position">Analyse Position</a></li>
+<li><a href="#generate-feature-vector">Generate Feature Vector</a></li>
+<li><a href="#customizing-search-algorithm-material">Customizing Search Algorithm - Material</a></li>
+<li><a href="#customizing-search-algorithm-quiescence-search">Customizing Search Algorithm - Quiescence Search</a></li>
+<li><a href="#customizing-search-algorithm-repetition-check">Customizing Search Algorithm - Repetition Check</a></li>
+<li><a href="#customizing-search-algorithm-check-extension">Customizing Search Algorithm - Check Extension</a></li>
+<li><a href="#customizing-search-algorithm-ybwc">Customizing Search Algorithm - YBWC</a></li>
+<li><a href="#customizing-search-algorithm-aspiration-windows">Customizing Search Algorithm - Aspiration Windows</a></li>
+<li><a href="#customizing-search-algorithm-aspiration-windows">Customizing Search Algorithm - Aspiration Windows</a></li>
+<li><a href="#customizing-search-algorithm-history-heuristics">Customizing Search Algorithm - History Heuristics</a></li>
+<li><a href="#customizing-search-algorithm-killer-move-heuristics">Customizing Search Algorithm - Killer Move Heuristics</a></li>
+<li><a href="#customizing-search-algorithm-hash-table">Customizing Search Algorithm - Hash Table</a></li>
+<li><a href="#customizing-search-algorithm-internal-iterative-deepening">Customizing Search Algorithm - Internal Iterative Deepening</a></li>
+<li><a href="#customizing-search-algorithm-null-move-reduction">Customizing Search Algorithm - Null Move Reduction</a></li>
+<li><a href="#customizing-search-algorithm-probcut">Customizing Search Algorithm - ProbCut</a></li>
+<li><a href="#customizing-search-algorithm-history-pruning">Customizing Search Algorithm - History Pruning</a></li>
+<li><a href="#customizing-search-algorithm-late-move-reduction">Customizing Search Algorithm - Late Move Reduction</a></li>
+<li><a href="#customizing-search-algorithm-futility-pruning">Customizing Search Algorithm - Futility Pruning</a></li>
+<li><a href="#customizing-evaluation-function-piece-square-table">Customizing Evaluation Function - Piece Square Table</a></li>
+<li><a href="#customizing-evaluation-function-attack">Customizing Evaluation Function - Attack</a></li>
+<li><a href="#customizing-evaluation-function-defense">Customizing Evaluation Function - Defense</a></li>
+<li><a href="#customizing-evaluation-function-pawn-shield">Customizing Evaluation Function - Pawn Shield</a></li>
+<li><a href="#customizing-evaluation-function-mobility">Customizing Evaluation Function - Mobility</a></li>
+<li><a href="#customizing-evaluation-function-controlling-center">Customizing Evaluation Function - Controlling Center</a></li>
+<li><a href="#customizing-evaluation-function-controlling-sweet-center">Customizing Evaluation Function - Controlling Sweet Center</a></li>
+<li><a href="#customizing-evaluation-function-development">Customizing Evaluation Function - Development</a></li>
+<li><a href="#customizing-evaluation-function-attack-around-enemy-king">Customizing Evaluation Function - Attack around Enemy King</a></li>
+<li><a href="#customizing-evaluation-function-pawn-structure">Customizing Evaluation Function - Pawn Structure</a></li>
+<li><a href="#customizing-evaluation-function-piece">Customizing Evaluation Function - Piece</a></li>
+</ul>
+<hr />
+<h3 id="getting-squares">Getting squares</h3>
+<p>Returns List of Symbols of squares where specific pieces are on.</p>
+<ul>
+<li><code>@get-white-pawn-position</code></li>
+<li><code>@get-white-knight-position</code></li>
+<li><code>@get-white-bishop-position</code></li>
+<li><code>@get-white-rook-position</code></li>
+<li><code>@get-white-queen-position</code></li>
+<li><code>@get-white-king-position</code></li>
+<li><code>@get-black-pawn-position</code></li>
+<li><code>@get-black-knight-position</code></li>
+<li><code>@get-black-bishop-position</code></li>
+<li><code>@get-black-rook-position</code></li>
+<li><code>@get-black-queen-position</code></li>
+<li><code>@get-black-king-position</code></li>
+<li><code>@get-empty-square-position</code></li>
+</ul>
+<h6> Example </h6>
+
+<pre><code>(define my-engine (gen-engine))
+(display (my-engine '@get-white-pawn-position))
+
+;; Output
+;; &gt; (A2 B2 C2 D2 E2 F2 G2 H2)
+</code></pre>
+<h3 id="getting-pieces">Getting pieces</h3>
+<ul>
+<li>
+<p><code>@get-piece &lt;Square : Number&gt;</code></p>
+<ul>
+<li>Returns a side and type of the piece on <code>&lt;Square&gt;</code> as List.</li>
+</ul>
+</li>
+<li>
+<p><code>@get-all-pieces</code></p>
+<ul>
+<li>Returns  pieces of each square on the board as List.</li>
+</ul>
+</li>
+</ul>
+<h6> Example </h6>
+
+<pre><code>(define my-engine (gen-engine))
+(display (my-engine '@get-piece D1))
+
+;; Output
+;; &gt; (WHITE QUEEN)
+
+(display (my-engine '@get-all-pieces))
+
+;; Output
+;; &gt; ((WHITE ROOK) (WHITE KNIGHT) (WHITE BISHOP) (WHITE QUEEN)
+;; &gt; (WHITE KING) (WHITE BISHOP) (WHITE KNIGHT) (WHITE ROOK)
+;; &gt; (WHITE PAWN) (WHITE PAWN) (WHITE PAWN) (WHITE PAWN) (WHITE PAWN)
+;; &gt; (WHITE PAWN) (WHITE PAWN) (WHITE PAWN) (NO_SIDE EMPTY)
+;; &gt; (NO_SIDE EMPTY) (NO_SIDE EMPTY) (NO_SIDE EMPTY) (NO_SIDE EMPTY)
+;; &gt; (NO_SIDE EMPTY) (NO_SIDE EMPTY) (NO_SIDE EMPTY) (NO_SIDE EMPTY)
+;; &gt; (NO_SIDE EMPTY) (NO_SIDE EMPTY) (NO_SIDE EMPTY) (NO_SIDE EMPTY)
+;; &gt; (NO_SIDE EMPTY) (NO_SIDE EMPTY) (NO_SIDE EMPTY) (NO_SIDE EMPTY)
+;; &gt; (NO_SIDE EMPTY) (NO_SIDE EMPTY) (NO_SIDE EMPTY) (NO_SIDE EMPTY)
+;; &gt; (NO_SIDE EMPTY) (NO_SIDE EMPTY) (NO_SIDE EMPTY) (NO_SIDE EMPTY)
+;; &gt; (NO_SIDE EMPTY) (NO_SIDE EMPTY) (NO_SIDE EMPTY) (NO_SIDE EMPTY)
+;; &gt; (NO_SIDE EMPTY) (NO_SIDE EMPTY) (NO_SIDE EMPTY) (BLACK PAWN)
+;; &gt; (BLACK PAWN) (BLACK PAWN) (BLACK PAWN) (BLACK PAWN) (BLACK PAWN)
+;; &gt; (BLACK PAWN) (BLACK PAWN) (BLACK ROOK) (BLACK KNIGHT) (BLACK BISHOP)
+;; &gt; (BLACK QUEEN) (BLACK KING) (BLACK BISHOP) (BLACK KNIGHT) (BLACK ROOK))
+</code></pre>
+<h3 id="getting-states-of-game">Getting states of game</h3>
+<ul>
+<li><code>@get-to-move</code><ul>
+<li>Returns turn to move as Symbol.</li>
+</ul>
+</li>
+<li><code>@get-castling-rights</code><ul>
+<li>Returns castling rights as Symbol.</li>
+</ul>
+</li>
+<li><code>@get-en-passant-square</code><ul>
+<li>Returns en passant square as Symbol if it exists now.</li>
+</ul>
+</li>
+<li><code>@get-ply</code><ul>
+<li>Returns plies of moves from starting of the game.</li>
+<li>1 move = 2 plies.</li>
+</ul>
+</li>
+<li><code>@get-clock</code><ul>
+<li>Returns clock(plies for 50 Moves Rule).</li>
+</ul>
+</li>
+<li><code>@get-white-has-castled</code><ul>
+<li>Returns Boolean whether White King has castled or not.</li>
+</ul>
+</li>
+<li><code>@get-black-has-castled</code><ul>
+<li>Returns Boolean whether Black King has castled or not.</li>
+</ul>
+</li>
+<li><code>@get-fen</code><ul>
+<li>Returns FEN of current position.</li>
+</ul>
+</li>
+<li><code>@to-string</code><ul>
+<li>Returns visualized board.</li>
+</ul>
+</li>
+</ul>
+<h6> Example </h6>
+
+<pre><code>(define my-engine (gen-engine))
+
+;; Move pieces by UCI command.
+;; 1.e4 e5 2.Nf3 Nc6 3.Bc4 Bc5 4.O-O d5
+;; +---------------+
+;; |r . b q k . n r|
+;; |p p p . . p p p|
+;; |. . n . . . . .|
+;; |. . b p p . . .|
+;; |. . B . P . . .|
+;; |. . . . . N . .|
+;; |P P P P . P P P|
+;; |R N B Q . R K .|
+;; +---------------+
+(my-engine '@input-uci-command
+    "position startpos moves e2e4 e7e5 g1f3 b8c6 f1c4 f8c5 e1g1 d7d5")
+
+(display (my-engine '@get-to-move))
+;; Output
+;; &gt; Symbol: WHITE
+
+(display (my-engine '@get-castling-rights))
+;; Output
+;; &gt; (BLACK_SHORT_CASTLING BLACK_LONG_CASTLING)
+
+(display (my-engine '@get-en-passant-square))
+;; Output
+;; &gt; Symbol: D6
+
+(display (my-engine '@get-ply))
+;; Output
+;; &gt; 8
+
+(display (my-engine '@get-clock))
+;; Output
+;; &gt; 0
+
+(display (my-engine '@get-white-has-castled))
+;; Output
+;; &gt; #t
+
+(display (my-engine '@get-black-has-castled))
+;; Output
+;; &gt; #f
+
+(display (my-engine '@get-fen))
+;; Output
+;; &gt; r1bqk1nr/ppp2ppp/2n5/2bpp3/2B1P3/5N2/PPPP1PPP/RNBQ1RK1 w kq d6 0 5
+
+(display (my-engine '@to-string))
+;; Output
+;; &gt;  +-----------------+
+;; &gt; 8| r . b q k . n r |
+;; &gt; 7| p p p . . p p p |
+;; &gt; 6| . . n . . . . . |
+;; &gt; 5| . . b p p . . . |
+;; &gt; 4| . . B . P . . . |
+;; &gt; 3| . . . . . N . . |
+;; &gt; 2| P P P P . P P P |
+;; &gt; 1| R N B Q . R K . |
+;; &gt;  +-----------------+
+;; &gt;    a b c d e f g h
+;; &gt; To Move: w | Clock: 0 | Ply: 8
+;; &gt; En Passant Square: d6
+;; &gt; Castling Rights : kq
+</code></pre>
+<h3 id="setting-states-of-game">Setting states of game</h3>
+<ul>
+<li><code>@set-to-move &lt;Side : Number&gt;</code><ul>
+<li>Sets turn to move.</li>
+<li>Returns previous setting.</li>
+</ul>
+</li>
+<li><code>@set-castling_rights &lt;Castling rights : List&gt;</code><ul>
+<li>Sets castling rights.</li>
+<li>Returns previous setting.</li>
+</ul>
+</li>
+<li><code>@set-en-passant-square &lt;&lt;Square : Number&gt; or &lt;Nil&gt;&gt;</code><ul>
+<li>Sets en passant square.</li>
+<li>Returns previous setting.</li>
+</ul>
+</li>
+<li><code>@set-ply &lt;Ply : Number&gt;</code><ul>
+<li>Sets plies(a half of one move).</li>
+<li>Returns previous setting.</li>
+</ul>
+</li>
+<li><code>@set-clock &lt;Ply : Number&gt;</code><ul>
+<li>Sets clock(plies for 50 moves rule).</li>
+<li>Returns previous setting.</li>
+</ul>
+</li>
+<li><code>@set-white-has-castled &lt;Has castled : Boolean&gt;</code><ul>
+<li>Sets whether White has castled or not.</li>
+<li>Returns previous setting.</li>
+</ul>
+</li>
+<li><code>@set-black-has-castled &lt;Has castled : Boolean&gt;</code><ul>
+<li>Sets whether Black has castled or not.</li>
+<li>Returns previous setting.</li>
+</ul>
+</li>
+</ul>
+<h6> Example </h6>
+
+<pre><code>(define my-engine (gen-engine))
+(my-engine '@place-piece (list WHITE PAWN) E4)
+
+(display (my-engine '@set-to-move BLACK))
+;; Output
+;; &gt; Symbol: WHITE
+
+(display (my-engine '@set-castling-rights
+    (list WHITE_LONG_CASTLING BLACK_LONG_CASTLING)))
+;; Output
+;; &gt; (WHITE_SHORT_CASTLING WHITE_LONG_CASTLING
+;; &gt; BLACK_SHORT_CASTLING BLACK_LONG_CASTLING)
+
+(display (my-engine '@set-en-passant-square E3))
+;; Output
+;; &gt; ()
+
+(display (my-engine '@set-ply 111))
+;; Output
+;; &gt; 0
+
+(display (my-engine '@set-clock 22))
+;; Output
+;; &gt; 0
+
+(display (my-engine '@set-white-has-castled #t))
+;; Output
+;; &gt; #f
+
+(display (my-engine '@set-black-has-castled #t))
+;; Output
+;; &gt; #f
+
+;; ---------------- ;;
+;; Current Settings ;;
+;; ---------------- ;;
+
+(display (my-engine '@get-to-move))
+;; Output
+;; &gt; Symbol: BLACK
+
+(display (my-engine '@get-castling-rights))
+;; Output
+;; &gt; (WHITE_LONG_CASTLING BLACK_LONG_CASTLING)
+
+(display (my-engine '@get-en-passant-square))
+;; Output
+;; &gt; Symbol: E3
+
+(display (my-engine '@get-ply))
+;; Output
+;; &gt; 111
+
+(display (my-engine '@get-clock))
+;; Output
+;; &gt; 22
+
+(display (my-engine '@get-white-has-castled))
+;; Output
+;; &gt; #t
+
+(display (my-engine '@get-black-has-castled))
+;; Output
+;; &gt; #t
+</code></pre>
+<h3 id="placing-pieces">Placing pieces</h3>
+<ul>
+<li><code>@set-new-game</code><ul>
+<li>Sets starting position.</li>
+<li>Returns #t.</li>
+</ul>
+</li>
+<li><code>@set-fen &lt;FEN : String&gt;</code><ul>
+<li>Sets position with FEN.</li>
+<li>Returns #t.</li>
+</ul>
+</li>
+<li><code>@place-piece &lt;Piece : List&gt; &lt;Square : Number&gt;</code><ul>
+<li>Sets a <code>&lt;Piece&gt;</code> on <code>&lt;Square&gt;</code>
+  and returns the previous piece placed on <code>&lt;Square&gt;</code>.</li>
+<li><code>&lt;Piece&gt;</code> is <code>(&lt;Side : Number&gt; &lt;Type : Number&gt;).</code><ul>
+<li>For example, White Pawn is <code>(list WHITE PAWN)</code>.</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h6> Example </h6>
+
+<pre><code>(define my-engine (gen-engine))
+
+(display (my-engine '@set-new-game))
+;; Output
+;; &gt; #t
+
+(display (my-engine '@set-fen
+    "r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 0 1"))
+;; Output
+;; &gt; #t
+
+;; Sets Black Rook on D1 where White Queen is placed.
+(display (my-engine '@place-piece (list BLACK ROOK) D1))
+;; Output
+;; &gt; (WHITE QUEEN)
+</code></pre>
+<h3 id="getting-candidate-moves">Getting candidate moves</h3>
+<ul>
+<li><code>@get-candidate-moves</code><ul>
+<li>Generates and returns List of candidate moves.</li>
+</ul>
+</li>
+</ul>
+<h6> Example </h6>
+
+<pre><code>(define my-engine (gen-engine))
+
+(display (my-engine '@get-candidate-moves))
+;; Output
+;; &gt;  ((H2 H4 EMPTY) (H2 H3 EMPTY) (G2 G4 EMPTY) (G2 G3 EMPTY)
+;; &gt; (F2 F4 EMPTY) (F2 F3 EMPTY) (E2 E4 EMPTY) (E2 E3 EMPTY) (D2 D4 EMPTY)
+;; &gt; (D2 D3 EMPTY) (C2 C4 EMPTY) (C2 C3 EMPTY) (B2 B4 EMPTY) (B2 B3 EMPTY)
+;; &gt; (A2 A4 EMPTY) (A2 A3 EMPTY) (G1 H3 EMPTY) (G1 F3 EMPTY) (B1 C3 EMPTY)
+;; &gt; (B1 A3 EMPTY))
+</code></pre>
+<h3 id="predicate-functions">Predicate functions</h3>
+<p>Judges each state of the current position.</p>
+<ul>
+<li><code>@correct-position?</code><ul>
+<li>If Pawn is on 1st or 8th rank, it returns #f.</li>
+<li>When turn to move is White, if Black King is checked,
+  then it returns #f.</li>
+<li>When turn to move is Black, if White King is checked,
+  then it returns #f.</li>
+<li>Otherwise, returns #t.</li>
+</ul>
+</li>
+<li><code>@white-checked?</code></li>
+<li><code>@black-checked?</code></li>
+<li><code>@checkmated?</code></li>
+<li><code>@stalemated?</code></li>
+</ul>
+<h6> Example </h6>
+
+<pre><code>(define my-engine (gen-engine))
+
+;; Put Pawn on 1st rank.
+(my-engine '@place-piece (list WHITE PAWN) D1)
+
+(display (my-engine '@correct-position?))
+;; Output
+;; &gt; #f
+
+(define my-engine (gen-engine))
+
+;; Move pieces by UCI command.
+;; 1.d4 e6 2.Nf3 Bb4+
+;; +---------------+
+;; |r n b q k . n r|
+;; |p p p p . p p p|
+;; |. . . . p . . .|
+;; |. . . . . . . .|
+;; |. b . P . . . .|
+;; |. . . . . N . .|
+;; |P P P . P P P P|
+;; |R N B Q K B . R|
+;; +---------------+
+(my-engine '@input-uci-command
+    "position startpos moves d2d4 e7e6 g1f3 f8b4")
+
+(display (my-engine '@white-checked?))
+;; Output
+;; &gt; #t
+
+(display (my-engine '@black-checked?))
+;; Output
+;; &gt; #f
+
+(define my-engine (gen-engine))
+
+;; Move pieces by UCI command.
+;; 1.f3 e5 2.g4 Qh4#
+;; +---------------+
+;; |r n b . k b n r|
+;; |p p p p . p p p|
+;; |. . . . . . . .|
+;; |. . . . p . . .|
+;; |. . . . . . P q|
+;; |. . . . . P . .|
+;; |P P P P P . . P|
+;; |R N B Q K B N R|
+;; +---------------+
+(my-engine '@input-uci-command
+    "position startpos moves f2f3 e7e5 g2g4 d8h4")
+
+(display (my-engine '@checkmated?))
+;; Output
+;; &gt; #t
+
+(display (my-engine '@stalemated?))
+;; Output
+;; &gt; #f
+</code></pre>
+<h3 id="taking-a-move">Taking a move</h3>
+<p>A move is represented by List.  The List is<br />
+<code>(&lt;From : Number&gt; &lt;To : Number&gt; &lt;Promotion : Number&gt;)</code>.</p>
+<ul>
+<li>
+<p><code>@play-move &lt;Move : List&gt;</code></p>
+<ul>
+<li>Moves one piece legally.</li>
+<li>Returns #t if it has succeeded, otherwise returns #f.</li>
+</ul>
+</li>
+<li>
+<p><code>@undo-move</code></p>
+<ul>
+<li>Undoes previous move.</li>
+<li>Returns previous move.</li>
+</ul>
+</li>
+<li>
+<p><code>@play-note &lt;PGN move text : String&gt;</code></p>
+<ul>
+<li>Moves one piece legally with <code>&lt;PGN move text&gt;</code>.</li>
+<li>Returns #t if it has succeeded, otherwise returns #f.</li>
+</ul>
+</li>
+<li>
+<p><code>@move-&gt;note &lt;Move : List&gt;</code></p>
+<ul>
+<li>Translates Move into PGN move text according to the current position.</li>
+</ul>
+</li>
+<li>
+<p><code>@note-&gt;move &lt;PGN move text : String&gt;</code></p>
+<ul>
+<li>Translates PGN move into move according to the current position.</li>
+</ul>
+</li>
+</ul>
+<h6> Example </h6>
+
+<pre><code>(define my-engine (gen-engine))
+
+(display (my-engine '@play-move (list E2 E4 EMPTY)))
+;; Output
+;; &gt; #t
+
+(display (my-engine '@get-white-pawn-position))
+;; Output
+;; &gt; (A2 B2 C2 D2 F2 G2 H2 E4)
+
+(display (my-engine '@undo-move))
+;; Output
+;; &gt; (E2 E4 EMPTY)
+
+(display (my-engine '@get-white-pawn-position))
+;; Output
+;; &gt; (A2 B2 C2 D2 E2 F2 G2 H2)
+
+(display (my-engine '@play-note "Nf3"))
+;; Output
+;; &gt; #t
+
+(display (my-engine '@get-white-knight-position))
+;; Output
+;; &gt; (B1 F3)
+
+(display (my-engine '@move-&gt;note (list B8 C6 EMPTY)))
+;; Output
+;; &gt; Nc6
+
+(display (my-engine '@note-&gt;move "Nc6"))
+;; Output
+;; &gt; (B8 C6 EMPTY)
+</code></pre>
+<h3 id="uci-command">UCI Command</h3>
+<ul>
+<li><code>@input-uci-command &lt;UCI command : String&gt;</code><ul>
+<li>Executes <code>&lt;UCI command&gt;</code>.</li>
+<li>If success, returns #t. Otherwise, returns #f.</li>
+<li>If you have input "go" command,
+  the engine starts thinking in background.
+  So control will come back soon.</li>
+</ul>
+</li>
+<li><code>@add-uci-output-listener &lt;Listener : Function&gt;</code><ul>
+<li>Registers Function to receive UCI output from the engine.</li>
+<li><code>&lt;Listener&gt;</code> is Function that has one argument(UCI output).</li>
+</ul>
+</li>
+<li><code>@run</code><ul>
+<li>Runs as UCI Chess Engine until the engine gets "quit" command.</li>
+<li>The control doesn't come back while the engine is running.</li>
+</ul>
+</li>
+</ul>
+<h6> Example </h6>
+
+<pre><code>(define my-engine (gen-engine))
+
+;; Create a listener.
+(define (listener message)
+    (display "I'm Listener : " message))
+
+;; Register the listener.
+(my-engine '@add-uci-output-listener listener)
+
+(display (my-engine '@input-uci-command "uci"))
+;; Output
+;; &gt; I'm Listener : id name Sayuri 2015.03.27 devel
+;; &gt; I'm Listener : id author Hironori Ishibashi
+;; &gt; I'm Listener : option name Hash type spin default 32 min 8 max 8192
+;; &gt; I'm Listener : option name Clear Hash type button
+;; &gt; I'm Listener : option name Ponder type check default true
+;; &gt; I'm Listener : option name Threads type spin default 1 min 1 max 64
+;; &gt; I'm Listener : option name UCI_AnalyseMode type check default false
+;; &gt; I'm Listener : uciok
+;; &gt; #t
+</code></pre>
+<h3 id="searching-the-best-move">Searching the best move</h3>
+<p>Thinks and returns the information of PV Line in each condition.<br />
+Unlike "go" command,
+the control won't come back until the engine have found the best move.</p>
+<ul>
+<li>
+<p>A return value is <code>(&lt;Score&gt; &lt;Mate in N&gt; &lt;PV Move&gt;...)</code></p>
+<ul>
+<li><code>&lt;Score&gt;</code> is advantage for the engine.</li>
+<li>About <code>&lt;Mate in N&gt;</code>.<ul>
+<li>If that is a positive number, checkmate in N by engine.</li>
+<li>If that is a negative number, the engine is checkmated in N.</li>
+<li>If that is Nil, the engine couldn't find checkmate.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p><code>@go-movetime &lt;Milliseconds : Number&gt; [&lt;Candidate move list : List&gt;]</code></p>
+<ul>
+<li>Thinks for <code>&lt;Milliseconds&gt;</code>.</li>
+</ul>
+</li>
+<li><code>@go-timelimit &lt;Milliseconds : Number&gt; [&lt;Candidate move list : List&gt;]</code><ul>
+<li>Thinks for <code>&lt;Milliseconds&gt; / 40</code></li>
+</ul>
+</li>
+<li><code>@go-depth &lt;Ply : Number&gt; [&lt;Candidate move list : List&gt;]</code><ul>
+<li>Thinks until to reach <code>&lt;Ply&gt;</code>th depth.</li>
+</ul>
+</li>
+<li><code>@go-nodes &lt;Nodes : Number&gt; [&lt;Candidate move list : List&gt;]</code><ul>
+<li>Thinks until to search <code>&lt;Nodes&gt;</code> nodes.</li>
+</ul>
+</li>
+</ul>
+<h6> Example </h6>
+
+<pre><code>(define my-engine (gen-engine))
+
+;; Starting position.
+(display (my-engine '@go-movetime 10000))
+;; Output
+;; &gt; (31 () (E2 E4 EMPTY) (E7 E5 EMPTY) (G1 F3 EMPTY) (G8 F6 EMPTY)
+;; &gt; (B1 C3 EMPTY) (B8 C6 EMPTY) (F1 B5 EMPTY) (F8 B4 EMPTY) (E1 G1 EMPTY)
+;; &gt; (B4 C3 EMPTY) (D2 C3 EMPTY))
+
+;; Mate in 2.
+(define fen
+  "2bqkbn1/2pppp2/np2N3/r3P1p1/p2N2B1/5Q2/PPPPKPP1/RNB2r2 w - - 0 1")
+(my-engine '@set-fen fen)
+
+(display (my-engine '@go-movetime 10000))
+;; &gt; (1000000 2 (F3 F7 EMPTY) (E8 F7 EMPTY) (G4 H5 EMPTY))
+</code></pre>
+<h3 id="hash-and-threads">Hash and threads</h3>
+<ul>
+<li><code>@set-hash-size &lt;Size : Number&gt;</code><ul>
+<li>Sets size of Hash Table(Transposition Table)
+  and returns the previous size.</li>
+<li>The unit of size is "byte".</li>
+</ul>
+</li>
+<li><code>@clear-hash</code><ul>
+<li>Reinitialize Hash Table.</li>
+</ul>
+</li>
+<li><code>@set-threads &lt;Number of threads : Number&gt;</code><ul>
+<li>Sets <code>&lt;Number of threads&gt;</code> and returns the previous number.</li>
+</ul>
+</li>
+</ul>
+<h6> Example </h6>
+
+<pre><code>(define my-engine (gen-engine))
+
+;; Set size of Hash Table to 128 MB.
+(my-engine '@input-uci-command "setoption name hash value 128")
+
+(display (my-engine '@set-hash-size (* 256 1024 1024)))
+;; Set size of Hash Table to 256 MB and return 128 * 1024 * 1024 bytes.
+;; Output
+;; &gt; 134217728
+
+;; Set the number of threads to 3.
+(my-engine '@input-uci-command "setoption name threads value 3")
+
+(display (my-engine '@set-threads 4))
+;; Set the number of threads to 4 and return 3.
+;; Output
+;; &gt; 3
+</code></pre>
+<h3 id="analyse-position">Analyse Position</h3>
+<ul>
+<li>
+<p><code>@analyse-diff</code></p>
+<ul>
+<li>Returns List of difference of pieces.<ul>
+<li>1st : Empty (It is always 0)</li>
+<li>2nd : Difference of Pawns</li>
+<li>3rd : Difference of Knights</li>
+<li>4th : Difference of Bishops</li>
+<li>5th : Difference of Rooks</li>
+<li>6th : Difference of Queens</li>
+<li>7th : Difference of Kings</li>
+</ul>
+</li>
+<li>If the element is '0', each side has same number of the pieces.</li>
+<li>If the element is a positive number, White has them more than Black's.</li>
+<li>If the element is a negative number, Black has them more than White's.</li>
+</ul>
+</li>
+<li>
+<p><code>@analyse-mobility &lt;Piece square : Number&gt;</code></p>
+<ul>
+<li>Returns List of squares that the piece on <code>&lt;Piece square&gt;</code> can move to.</li>
+</ul>
+</li>
+<li>
+<p><code>@analyse-attackers &lt;Square : Number&gt;</code></p>
+<ul>
+<li>Returns List of squares of pieces that
+  attacks <code>&lt;Square&gt;</code>.</li>
+</ul>
+</li>
+<li>
+<p><code>@analyse-attacking &lt;Piece square : Number&gt;</code></p>
+<ul>
+<li>Returns List of squares of pieces that
+  the piece on <code>&lt;Piece square&gt;</code> is attacking.</li>
+</ul>
+</li>
+<li>
+<p><code>@analyse-attacked &lt;Piece square : Number&gt;</code></p>
+<ul>
+<li>Returns List of squares of pieces that
+  the piece on <code>&lt;Piece square&gt;</code> is attacked by.</li>
+</ul>
+</li>
+<li>
+<p><code>@analyse-defensing &lt;Piece square : Number&gt;</code></p>
+<ul>
+<li>Returns List of squares of pieces that
+  the piece on <code>&lt;Piece square&gt;</code> is defensing.</li>
+</ul>
+</li>
+<li>
+<p><code>@analyse-defensed &lt;Piece square : Number&gt;</code></p>
+<ul>
+<li>Returns List of squares of pieces that
+  the piece on <code>&lt;Piece square&gt;</code> is defensed by.</li>
+</ul>
+</li>
+<li>
+<p><code>@analyse-center-control &lt;Piece square : Number&gt;</code></p>
+<ul>
+<li>Returns List of Center squares that
+  the piece on <code>&lt;Piece square&gt;</code> attacks.</li>
+</ul>
+</li>
+<li>
+<p><code>@analyse-sweet-center-control &lt;Piece square : Number&gt;</code></p>
+<ul>
+<li>Returns List of Sweet Center squares that
+  the piece on <code>&lt;Piece square&gt;</code> attacks.</li>
+</ul>
+</li>
+<li>
+<p><code>@analyse-open-fyle</code></p>
+<ul>
+<li>Returns List of open fyles.</li>
+</ul>
+</li>
+<li>
+<p><code>@analyse-development (&lt;Piece side : Number&gt; &lt;Piece type : Number&gt;)</code></p>
+<ul>
+<li>Returns List of squares that the developed(Not on starting position)
+  <code>(&lt;Piece side&gt; &lt;Piece type&gt;)</code> on.</li>
+</ul>
+</li>
+<li>
+<p><code>@analyse-double-pawn &lt;Side : Number&gt;</code></p>
+<ul>
+<li>Returns List of squares that Double Pawns of <code>&lt;Side&gt;</code> on.</li>
+</ul>
+</li>
+<li>
+<p><code>@analyse-iso-pawn &lt;Side : Number&gt;</code></p>
+<ul>
+<li>Returns List of squares that Isolated Pawns of <code>&lt;Side&gt;</code> on.</li>
+</ul>
+</li>
+<li>
+<p><code>@analyse-pass-pawn &lt;Side : Number&gt;</code></p>
+<ul>
+<li>Returns List of squares that Pass Pawns of <code>&lt;Side&gt;</code> on.</li>
+</ul>
+</li>
+</ul>
+<h6> Example </h6>
+
+<pre><code>;; Set position.
+;;  +-----------------+
+;; 8| . . . . k . . r |
+;; 7| . b . . . . . . |
+;; 6| . . . . . n . . |
+;; 5| q . . . . r . p |
+;; 4| . . . . . . p P |
+;; 3| . P B . . N . P |
+;; 2| P . . . . . . . |
+;; 1| . N R . K . . R |
+;;  +-----------------+
+;;    a b c d e f g h
+(define fen "4k2r/1b6/5n2/q4r1p/6pP/1PB2N1P/P7/1NR1K2R w Kk - 0 1")
+(define engine (gen-engine))
+(engine '@set-fen fen)
+
+(display (engine '@analyse-diff))
+;; Output
+;; &gt; (0 2 1 0 0 -1 0)
+
+(display (engine '@analyse-mobility F3))
+;; Output
+;; &gt; (G1 D2 H2 D4 E5 G5)
+
+(display (engine '@analyse-attackers E5))
+;; &gt; (C3 F3 A5 F5)
+
+(display (engine '@analyse-attacking C3))
+;; Output
+;; &gt; (A5 F6)
+
+(display (engine '@analyse-attacked F3))
+;; Output
+;; &gt; (G4 F5 B7)
+
+(display (engine '@analyse-defensing C1))
+;; Output
+;; &gt; (B1 E1 C3)
+
+(display (engine '@analyse-defensed C3))
+;; Output
+;; &gt; (B1 C1)
+
+(display (engine '@analyse-center-control C3))
+;; Output
+;; &gt; (D4 E5 F6)
+
+(display (engine '@analyse-sweet-center-control C3))
+;; Output
+;; &gt; (D4 E5)
+
+(display (engine '@analyse-open-fyle))
+;; Output
+;; &gt; (FYLE_C FYLE_D FYLE_E FYLE_F)
+
+(display (engine '@analyse-development (list WHITE ROOK)))
+;; Output
+;; &gt; (C1)
+
+(display (engine '@analyse-double-pawn WHITE))
+;; Output
+;; &gt; (H3 H4)
+
+(display (engine '@analyse-iso-pawn WHITE))
+;; Output
+;; &gt; (H3 H4)
+
+(display (engine '@analyse-pass-pawn WHITE))
+;; Output
+;; &gt; (A2 B3)
+</code></pre>
+<h3 id="generate-feature-vector">Generate Feature Vector</h3>
+<ul>
+<li><code>@generate-feature-vector</code></li>
+</ul>
+<p>Generates List of each Feature Vector.</p>
+<h6> Example </h6>
+
+<pre><code>(define my-engine (gen-engine))
+(define (make-move from to)
+        (my-engine '@play-move (list from to EMPTY)))
+
+(make-move E2 E4)
+(make-move E7 E5)
+(make-move G1 F3)
+(make-move B8 C6)
+(make-move F1 B5)
+(make-move A7 A6)
+(make-move B5 A4)
+(make-move G8 F6)
+(make-move E1 G1)
+(make-move F8 E7)
+(make-move F1 E1)
+
+(display (my-engine '@to-string))
+(for (elm (my-engine '@get-feature-vector WHITE))
+     (display elm))
+;; Output
+;; &gt;   +-----------------+
+;; &gt;  8| r . b q k . . r |
+;; &gt;  7| . p p p b p p p |
+;; &gt;  6| p . n . . n . . |
+;; &gt;  5| . . . . p . . . |
+;; &gt;  4| B . . . P . . . |
+;; &gt;  3| . . . . . N . . |
+;; &gt;  2| P P P P . P P P |
+;; &gt;  1| R N B Q R . K . |
+;; &gt;   +-----------------+
+;; &gt;     a b c d e f g h
+;; &gt;  To Move: b | Clock: 5 | Ply: 11
+;; &gt;  En Passant Square: -
+;; &gt;  Castling Rights : kq
+;; &gt;  
+;; &gt;  ("material" (0 0 0 0 0 0))
+;; &gt;  ("pawn_position" (0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 -1 0 0 0 0 0 0 0 0
+;; &gt; 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+;; &gt; 0 0 0 0))
+;; &gt;  ("knight_position" (0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -1 0 0 0 0 0
+;; &gt; 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+;; &gt; 0 0 0 0 0))
+;; &gt;  ("bishop_position" (0 0 0 0 0 0 0 0 0 0 0 0 -1 0 0 0 0 0 0 0 0 0 0 0
+;; &gt; 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+;; &gt; 0 0 0 0 0))
+;; &gt;  ("rook_position" (0 0 0 0 1 0 0 -1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+;; &gt; 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+;; &gt; 0 0 0 0))
+;; &gt;  ("queen_position" (0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+;; &gt; 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+;; &gt; 0 0 0 0))
+;; &gt;  ("king_position" (0 0 0 0 -1 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+;; &gt; 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+;; &gt; 0 0 0 0))
+;; &gt;  ("pawn_attack" (0 0 0 0 0 0))
+;; &gt;  ("knight_attack" (0 0 0 0 0 0))
+;; &gt;  ("bishop_attack" (0 1 0 0 0 0))
+;; &gt;  ("rook_attack" (0 0 0 0 0 0))
+;; &gt;  ("queen_attack" (0 0 0 0 0 0))
+;; &gt;  ("king_attack" (0 0 0 0 0 0))
+;; &gt;  ("pawn_defense" (-1 -2 0 0 0 0))
+;; &gt;  ("knight_defense" (0 0 -1 1 -1 0))
+;; &gt;  ("bishop_defense" (1 -1 0 0 -1 0))
+;; &gt;  ("rook_defense" (0 1 -1 0 1 0))
+;; &gt;  ("queen_defense" (0 1 -1 1 0 -1))
+;; &gt;  ("king_defense" (1 0 -1 0 -1 0))
+;; &gt;  ("mobility" (2 -4 -2 -1 1 0))
+;; &gt;  ("center_control" (2 0 -1 1 0 0))
+;; &gt;  ("sweet_center_control" (0 -1 0 0 0 0))
+;; &gt;  ("development" (-1 -1 0 1 0 1))
+;; &gt;  ("attack_around_king" (0 0 0 0 0 0))
+;; &gt;  ("pass_pawn" (0))
+;; &gt;  ("protected_pass_pawn" (0))
+;; &gt;  ("double_pawn" (0))
+;; &gt;  ("iso_pawn" (0))
+;; &gt;  ("bishop_pair" (0))
+;; &gt;  ("bad_bishop" (0))
+;; &gt;  ("rook_pair" (0))
+;; &gt;  ("rook_semiopen_fyle" (0))
+;; &gt;  ("rook_open_fyle" (0))
+;; &gt;  ("early_queen_starting" (0))
+;; &gt;  ("weak_square" (0))
+;; &gt;  ("castling" (1))
+;; &gt;  ("abandoned_castling" (0))
+</code></pre>
+<h3 id="customizing-search-algorithm-material">Customizing Search Algorithm - Material</h3>
+<ul>
+<li><code>@material [&lt;New materal : List&gt;]</code><ul>
+<li>Returns List of material.<ul>
+<li>1st : Empty (It is always 0)</li>
+<li>2nd : Pawn</li>
+<li>3rd : Knight</li>
+<li>4th : Bishop</li>
+<li>5th : Rook</li>
+<li>6th : Queen</li>
+<li>7th : King</li>
+</ul>
+</li>
+<li>If you specify <code>&lt;New materal&gt;</code>, the material is updated.</li>
+</ul>
+</li>
+</ul>
+<h6> Example </h6>
+
+<pre><code>(define my-engine (gen-engine))
+
+(display (my-engine '@material (list 111 222 333 444 555 666 777)))
+;; Output
+;; &gt; (0 100 400 400 600 1200 1000000)
+
+(display (my-engine '@material))
+;; Output
+;; &gt; (0 222 333 444 555 666 777)
+</code></pre>
+<h3 id="customizing-search-algorithm-quiescence-search">Customizing Search Algorithm - Quiescence Search</h3>
+<ul>
+<li><code>@enable-quiesce-search [&lt;New setting : Boolean&gt;]</code><ul>
+<li>Returns whether Quiescence Search is enabled or not.</li>
+<li>If you specify #t to <code>&lt;New setting&gt;</code>,
+  Quiescence Search is set to be enabled.
+  Otherwise, it is set to be disabled.</li>
+</ul>
+</li>
+</ul>
+<h6> Example </h6>
+
+<pre><code>(define my-engine (gen-engine))
+
+(display (my-engine '@enable-quiesce-search #f))
+;; Output
+;; &gt; #t
+
+(display (my-engine '@enable-quiesce-search))
+;; Output
+;; &gt; #f
+</code></pre>
+<h3 id="customizing-search-algorithm-repetition-check">Customizing Search Algorithm - Repetition Check</h3>
+<ul>
+<li><code>@enable-repetition-check [&lt;New setting : Boolean&gt;]</code><ul>
+<li>Returns whether Repetition Check is enabled or not.</li>
+<li>If you specify #t to <code>&lt;New setting&gt;</code>,
+  Repetition Check is set to be enabled.
+  Otherwise, it is set to be disabled.</li>
+</ul>
+</li>
+</ul>
+<h6> Example </h6>
+
+<pre><code>(define my-engine (gen-engine))
+
+(display (my-engine '@enable-repetition-check #f))
+;; Output
+;; &gt; #t
+
+(display (my-engine '@enable-repetition-check))
+;; Output
+;; &gt; #f
+</code></pre>
+<h3 id="customizing-search-algorithm-check-extension">Customizing Search Algorithm - Check Extension</h3>
+<ul>
+<li><code>@enable-check-extension [&lt;New setting : Boolean&gt;]</code><ul>
+<li>Returns whether Check Extension is enabled or not.</li>
+<li>If you specify #t to <code>&lt;New setting&gt;</code>,
+  Check Extension is set to be enabled.
+  Otherwise, it is set to be disabled.</li>
+</ul>
+</li>
+</ul>
+<h6> Example </h6>
+
+<pre><code>(define my-engine (gen-engine))
+
+(display (my-engine '@enable-check-extension #f))
+;; Output
+;; &gt; #t
+
+(display (my-engine '@enable-check-extension))
+;; Output
+;; &gt; #f
+</code></pre>
+<h3 id="customizing-search-algorithm-ybwc">Customizing Search Algorithm - YBWC</h3>
+<ul>
+<li>
+<p><code>@ybwc-limit-depth [&lt;New depth : Number&gt;]</code></p>
+<ul>
+<li>If remaining depth is less than this parameter, YBWC is invalidated.</li>
+<li>Return this parameter.</li>
+<li>If you specify <code>&lt;New depth&gt;</code>, this parameter is updated.</li>
+</ul>
+</li>
+<li>
+<p><code>@ybwc-invalid-moves [&lt;New number of moves : Number&gt;]</code></p>
+<ul>
+<li>YBWC searches with one thread during this parameter of candidate moves.</li>
+<li>Return this parameter.</li>
+<li>If you specify <code>&lt;New number of moves&gt;</code>, this parameter is updated.</li>
+</ul>
+</li>
+</ul>
+<h6> Example </h6>
+
+<pre><code>(define my-engine (gen-engine))
+
+(display (my-engine '@ybwc-limit-depth 10))
+;; Output
+;; &gt; 4
+
+(display (my-engine '@ybwc-limit-depth))
+;; Output
+;; &gt; 10
+
+(display (my-engine '@ybwc-invalid-moves 10))
+;; Output
+;; &gt; 3
+
+(display (my-engine '@ybwc-invalid-moves))
+;; Output
+;; &gt; 10
+</code></pre>
+<h3 id="customizing-search-algorithm-aspiration-windows">Customizing Search Algorithm - Aspiration Windows</h3>
+<ul>
+<li><code>@enable-aspiration-windows [&lt;New setting : Boolean&gt;]</code><ul>
+<li>Returns whether Aspiration Windows is enabled or not.</li>
+<li>If you specify #t to <code>&lt;New setting&gt;</code>,
+  Aspiration Windows is set to be enabled.
+  Otherwise, it is set to be disabled.</li>
+</ul>
+</li>
+<li><code>@aspiration-windows-limit-depth [&lt;New depth : Number&gt;]</code><ul>
+<li>If remaining depth is less than this parameter at the root node,
+  Aspiration Windows is invalidated.</li>
+<li>Return this parameter.</li>
+<li>If you specify <code>&lt;New depth&gt;</code>, this parameter is updated.</li>
+</ul>
+</li>
+<li><code>@aspiration-windows-delta [&lt;New delta : Number&gt;]</code><ul>
+<li>Return Delta.</li>
+<li>If you specify <code>&lt;New delta&gt;</code>, Delta is updated.</li>
+</ul>
+</li>
+</ul>
+<h6> Example </h6>
+
+<pre><code>(define my-engine (gen-engine))
+
+(display (my-engine '@enable-aspiration-windows #f))
+;; Output
+;; &gt; #t
+
+(display (my-engine '@enable-aspiration-windows))
+;; Output
+;; &gt; #f
+
+(display (my-engine '@aspiration-windows-limit-depth 10))
+;; Output
+;; &gt; 5
+
+(display (my-engine '@aspiration-windows-limit-depth))
+;; Output
+;; &gt; 10
+
+(display (my-engine '@aspiration-windows-delta 20))
+;; Output
+;; &gt; 15
+
+(display (my-engine '@aspiration-windows-delta))
+;; Output
+;; &gt; 20
+</code></pre>
+<h3 id="customizing-search-algorithm-aspiration-windows_1">Customizing Search Algorithm - Aspiration Windows</h3>
+<ul>
+<li><code>@enable-see [&lt;New setting : Boolean&gt;]</code><ul>
+<li>Returns whether SEE is enabled or not.</li>
+<li>If you specify #t to <code>&lt;New setting&gt;</code>,
+  SEE is set to be enabled. Otherwise, it is set to be disabled.</li>
+</ul>
+</li>
+</ul>
+<h6> Example </h6>
+
+<pre><code>(define my-engine (gen-engine))
+
+(display (my-engine '@enable-see #f))
+;; Output
+;; &gt; #t
+
+(display (my-engine '@enable-see))
+;; Output
+;; &gt; #f
+</code></pre>
+<h3 id="customizing-search-algorithm-history-heuristics">Customizing Search Algorithm - History Heuristics</h3>
+<ul>
+<li><code>@enable-history [&lt;New setting : Boolean&gt;]</code><ul>
+<li>Returns whether History Heuristics is enabled or not.</li>
+<li>If you specify #t to <code>&lt;New setting&gt;</code>,
+  History Heuristics is set to be enabled.
+  Otherwise, it is set to be disabled.</li>
+</ul>
+</li>
+</ul>
+<h6> Example </h6>
+
+<pre><code>(define my-engine (gen-engine))
+
+(display (my-engine '@enable-history #f))
+;; Output
+;; &gt; #t
+
+(display (my-engine '@enable-history))
+;; Output
+;; &gt; #f
+</code></pre>
+<h3 id="customizing-search-algorithm-killer-move-heuristics">Customizing Search Algorithm - Killer Move Heuristics</h3>
+<ul>
+<li><code>@enable-killer [&lt;New setting : Boolean&gt;]</code><ul>
+<li>Returns whether Killer Move Heuristics is enabled or not.</li>
+<li>If you specify #t to <code>&lt;New setting&gt;</code>,
+  Killer Move Hiuristics is set to be enabled.
+  Otherwise, it is set to be disabled.</li>
+</ul>
+</li>
+</ul>
+<h6> Example </h6>
+
+<pre><code>(define my-engine (gen-engine))
+
+(display (my-engine '@enable-killer #f))
+;; Output
+;; &gt; #t
+
+(display (my-engine '@enable-killer))
+;; Output
+;; &gt; #f
+</code></pre>
+<h3 id="customizing-search-algorithm-hash-table">Customizing Search Algorithm - Hash Table</h3>
+<ul>
+<li><code>@enable-hash-table [&lt;New setting : Boolean&gt;]</code><ul>
+<li>Returns whether Transposition Table is enabled or not.</li>
+<li>If you specify #t to <code>&lt;New setting&gt;</code>,
+  Transposition Table is set to be enabled.
+  Otherwise, it is set to be disabled.</li>
+</ul>
+</li>
+</ul>
+<h6> Example </h6>
+
+<pre><code>(define my-engine (gen-engine))
+
+(display (my-engine '@enable-hash-table #f))
+;; Output
+;; &gt; #t
+
+(display (my-engine '@enable-hash-table))
+;; Output
+;; &gt; #t
+</code></pre>
+<h3 id="customizing-search-algorithm-internal-iterative-deepening">Customizing Search Algorithm - Internal Iterative Deepening</h3>
+<ul>
+<li><code>@enable-iid [&lt;New setting : Boolean&gt;]</code><ul>
+<li>Returns whether Internal Iterative Deepening is enabled or not.</li>
+<li>If you specify #t to <code>&lt;New setting&gt;</code>,
+  Internal Iterative Deepening is set to be enabled.
+  Otherwise, it is set to be disabled.</li>
+</ul>
+</li>
+<li><code>@iid-limit-depth [&lt;New depth : Number&gt;]</code><ul>
+<li>If remaining depth is less than this parameter,
+  Internal Iterative Deepening is invalidated.</li>
+<li>Return this parameter.</li>
+<li>If you specify <code>&lt;New depth&gt;</code>, this parameter is updated.</li>
+</ul>
+</li>
+<li><code>@iid-search-depth [&lt;New depth : Number&gt;]</code><ul>
+<li>Internal Iterative Deepening searches until depth of this parameter.</li>
+<li>Return this parameter.</li>
+<li>If you specify <code>&lt;New depth&gt;</code>, this parameter is updated.</li>
+</ul>
+</li>
+</ul>
+<h6> Example </h6>
+
+<pre><code>(define my-engine (gen-engine))
+
+(display (my-engine '@enable-iid #f))
+;; Output
+;; &gt; #t
+
+(display (my-engine '@enable-iid))
+;; Output
+;; &gt; #f
+
+(display (my-engine '@iid-limit-depth 10))
+;; Output
+;; &gt; 5
+
+(display (my-engine '@iid-limit-depth))
+;; Output
+;; &gt; 10
+
+(display (my-engine '@iid-search-depth 10))
+;; Output
+;; &gt; 4
+
+(display (my-engine '@iid-search-depth))
+;; Output
+;; &gt; 10
+</code></pre>
+<h3 id="customizing-search-algorithm-null-move-reduction">Customizing Search Algorithm - Null Move Reduction</h3>
+<ul>
+<li><code>@enable-nmr [&lt;New setting : Boolean&gt;]</code><ul>
+<li>Returns whether Null Move Reduction is enabled or not.</li>
+<li>If you specify #t to <code>&lt;New setting&gt;</code>,
+  Null Move Reduction is set to be enabled.
+  Otherwise, it is set to be disabled.</li>
+</ul>
+</li>
+<li><code>@nmr-limit-depth [&lt;New depth : Number&gt;]</code><ul>
+<li>If remaining depth is less than this parameter,
+  Null Move Reduction is invalidated.</li>
+<li>Return this parameter.</li>
+<li>If you specify <code>&lt;New depth&gt;</code>, this parameter is updated.</li>
+</ul>
+</li>
+<li><code>@nmr-search-reduction [&lt;New reduction : Number&gt;]</code><ul>
+<li>When searching shallowly, the depth is the actual depth
+  minus this parameter.</li>
+<li>Return this parameter.</li>
+<li>If you specify <code>&lt;New reduction&gt;</code>, this parameter is updated.</li>
+</ul>
+</li>
+<li><code>@nmr-reduction [&lt;New reduction : Number&gt;]</code><ul>
+<li>If the score is greater than or equals to Beta,
+  the remaining depth is reduced by this parameter.</li>
+<li>Return this parameter.</li>
+<li>If you specify <code>&lt;New reduction&gt;</code>, this parameter is updated.</li>
+</ul>
+</li>
+</ul>
+<h6> Example </h6>
+
+<pre><code>(define my-engine (gen-engine))
+
+(display (my-engine '@enable-nmr #f))
+;; Output
+;; &gt; #t
+
+(display (my-engine '@enable-nmr))
+;; Output
+;; &gt; #f
+
+(display (my-engine '@nmr-limit-depth 10))
+;; Output
+;; &gt; 4
+
+(display (my-engine '@nmr-limit-depth))
+;; Output
+;; &gt; 10
+
+(display (my-engine '@nmr-search-reduction 10))
+;; Output
+;; &gt; 4
+
+(display (my-engine '@nmr-search-reduction))
+;; Output
+;; &gt; 10
+
+(display (my-engine '@nmr-reduction 10))
+;; Output
+;; &gt; 3
+
+(display (my-engine '@nmr-reduction))
+;; Output
+;; &gt; 10
+</code></pre>
+<h3 id="customizing-search-algorithm-probcut">Customizing Search Algorithm - ProbCut</h3>
+<ul>
+<li><code>@enable-probcut [&lt;New setting : Boolean&gt;]</code><ul>
+<li>Returns whether ProbCut is enabled or not.</li>
+<li>If you specify #t to <code>&lt;New setting&gt;</code>, ProbCut is set to be enabled.
+  Otherwise, it is set to be disabled.</li>
+</ul>
+</li>
+<li><code>@probcut-limit-depth [&lt;New depth : Number&gt;]</code><ul>
+<li>If remaining depth is less than this parameter, ProbCut is invalidated.</li>
+<li>Return this parameter.</li>
+<li>If you specify <code>&lt;New depth&gt;</code>, this parameter is updated.</li>
+</ul>
+</li>
+<li><code>@probcut-margin [&lt;New margin : Number&gt;]</code><ul>
+<li>When Zero Window Search,
+  ProbCut uses the current Beta plus this parameter as temporary Beta.</li>
+</ul>
+</li>
+<li><code>@probcut-search-reduction [&lt;New reduction : Number&gt;]</code><ul>
+<li>When Zero Window Search, the depth is the actual depth
+  minus this parameter.</li>
+<li>Return this parameter.</li>
+<li>If you specify <code>&lt;New reduction&gt;</code>, this parameter is updated.</li>
+</ul>
+</li>
+</ul>
+<h6> Example </h6>
+
+<pre><code>(define my-engine (gen-engine))
+
+(display (my-engine '@enable-probcut #t))
+;; Output
+;; &gt; #f
+
+(display (my-engine '@enable-probcut))
+;; Output
+;; &gt; #t
+
+(display (my-engine '@probcut-limit-depth 10))
+;; Output
+;; &gt; 4
+
+(display (my-engine '@probcut-limit-depth))
+;; Output
+;; &gt; 10
+
+(display (my-engine '@probcut-margin 1200))
+;; Output
+;; &gt; 400
+
+(display (my-engine '@probcut-margin))
+;; Output
+;; &gt; 1200
+
+(display (my-engine '@probcut-search-reduction 10))
+;; Output
+;; &gt; 3
+
+(display (my-engine '@probcut-search-reduction))
+;; Output
+;; &gt; 10
+</code></pre>
+<h3 id="customizing-search-algorithm-history-pruning">Customizing Search Algorithm - History Pruning</h3>
+<ul>
+<li><code>@enable-history-pruning [&lt;New setting : Boolean&gt;]</code><ul>
+<li>Returns whether History Pruning is enabled or not.</li>
+<li>If you specify #t to <code>&lt;New setting&gt;</code>,
+  History Pruning is set to be enabled.
+  Otherwise, it is set to be disabled.</li>
+</ul>
+</li>
+<li><code>@history-pruning-limit-depth [&lt;New depth : Number&gt;]</code><ul>
+<li>If remaining depth is less than this parameter,
+  History Pruning is invalidated.</li>
+<li>Return this parameter.</li>
+<li>If you specify <code>&lt;New depth&gt;</code>, this parameter is updated.</li>
+</ul>
+</li>
+<li><code>@history-pruning-move-threshold [&lt;New threshold : Number&gt;]</code><ul>
+<li>If the number of the candidate move is less
+  than the number of all moves times this parameter,
+  History Pruning is invalidated.</li>
+<li>This parameter is between 0.0 and 1.0.</li>
+<li>Return this parameter.</li>
+<li>If you specify <code>&lt;New threshold&gt;</code>, this parameter is updated.</li>
+</ul>
+</li>
+<li><code>@history-pruning-invalid-moves [&lt;New number of moves : Number&gt;]</code><ul>
+<li>If the number of the candidate moves is less than this parameter,
+  History Pruning is invalidated.</li>
+<li>This parameter is given priority to <code>@history-pruning-move-threshold</code>.</li>
+<li>Return this parameter.</li>
+<li>If you specify <code>&lt;New number of moves&gt;</code>, this parameter is updated.</li>
+</ul>
+</li>
+<li><code>@history-pruning-threshold [&lt;New threshold : Number&gt;]</code><ul>
+<li>If the history value of the current candidate move is lower
+  than the max history value times this parameter,
+  History Pruning temporarily reduces the remaining depth.</li>
+<li>Return this parameter.</li>
+<li>If you specify <code>&lt;New threshold&gt;</code>, this parameter is updated.</li>
+</ul>
+</li>
+<li><code>@history-pruning-reduction [&lt;New reduction : Number&gt;]</code><ul>
+<li>When History Pruning reduces the remaining depth,
+  a new depth is the current depth minus this parameter.</li>
+<li>Return this parameter.</li>
+<li>If you specify <code>&lt;New reduction&gt;</code>, this parameter is updated.</li>
+</ul>
+</li>
+</ul>
+<h6> Example </h6>
+
+<pre><code>(define my-engine (gen-engine))
+
+(display (my-engine '@enable-history-pruning #t))
+;; Output
+;; &gt; #f
+
+(display (my-engine '@enable-history-pruning))
+;; Output
+;; &gt; #t
+
+(display (my-engine '@history-pruning-limit-depth 10))
+;; Output
+;; &gt; 4
+
+(display (my-engine '@history-pruning-limit-depth))
+;; Output
+;; &gt; 10
+
+(display (my-engine '@history-pruning-move-threshold 0.8))
+;; Output
+;; &gt; 0.6
+
+(display (my-engine '@history-pruning-move-threshold))
+;; Output
+;; &gt; 0.8
+
+(display (my-engine '@history-pruning-invalid-moves 20))
+;; Output
+;; &gt; 10
+
+(display (my-engine '@history-pruning-invalid-moves))
+;; Output
+;; &gt; 20
+
+(display (my-engine '@history-pruning-threshold 0.8))
+;; Output
+;; &gt; 0.5
+
+(display (my-engine '@history-pruning-threshold))
+;; Output
+;; &gt; 0.8
+
+(display (my-engine '@history-pruning-reduction 10))
+;; Output
+;; &gt; 1
+
+(display (my-engine '@history-pruning-reduction))
+;; Output
+;; &gt; 10
+</code></pre>
+<h3 id="customizing-search-algorithm-late-move-reduction">Customizing Search Algorithm - Late Move Reduction</h3>
+<ul>
+<li><code>@enable-lmr [&lt;New setting : Boolean&gt;]</code><ul>
+<li>Returns whether Late Move Reduction is enabled or not.</li>
+<li>If you specify #t to <code>&lt;New setting&gt;</code>,
+  Late Move Reduction is set to be enabled.
+  Otherwise, it is set to be disabled.</li>
+</ul>
+</li>
+<li><code>@lmr-limit-depth [&lt;New depth : Number&gt;]</code><ul>
+<li>If remaining depth is less than this parameter,
+  Late Move Reduction is invalidated.</li>
+<li>Return this parameter.</li>
+<li>If you specify <code>&lt;New depth&gt;</code>, this parameter is updated.</li>
+</ul>
+</li>
+<li><code>@lmr-move-threshold [&lt;New threshold : Number&gt;]</code><ul>
+<li>If the number of the candidate move is less
+  than the number of all moves times this parameter,
+  Late Move Reduction is invalidated.</li>
+<li>This parameter is between 0.0 and 1.0.</li>
+<li>Return this parameter.</li>
+<li>If you specify <code>&lt;New threshold&gt;</code>, this parameter is updated.</li>
+</ul>
+</li>
+<li><code>@lmr-invalid-moves [&lt;New number of moves : Number&gt;]</code><ul>
+<li>If the number of the candidate moves is less than this parameter,
+  Late Move Reduction is invalidated.</li>
+<li>This parameter is given priority to <code>@lmr-move-threshold</code>.</li>
+<li>Return this parameter.</li>
+<li>If you specify <code>&lt;New number of moves&gt;</code>, this parameter is updated.</li>
+</ul>
+</li>
+<li><code>@lmr-search-reduction [&lt;New reduction : Number&gt;]</code><ul>
+<li>When searching shallowly, the depth is the actual depth
+  minus this parameter.</li>
+<li>Return this parameter.</li>
+<li>If you specify <code>&lt;New reduction&gt;</code>, this parameter is updated.</li>
+</ul>
+</li>
+</ul>
+<h6> Example </h6>
+
+<pre><code>(define my-engine (gen-engine))
+
+(display (my-engine '@enable-lmr #f))
+;; Output
+;; &gt; #t
+
+(display (my-engine '@enable-lmr))
+;; Output
+;; &gt; #f
+
+(display (my-engine '@lmr-limit-depth 10))
+;; Output
+;; &gt; 4
+
+(display (my-engine '@lmr-limit-depth))
+;; Output
+;; &gt; 10
+
+(display (my-engine '@lmr-move-threshold 0.8))
+;; Output
+;; &gt; 0.3
+
+(display (my-engine '@lmr-move-threshold))
+;; Output
+;; &gt; 0.8
+
+(display (my-engine '@lmr-invalid-moves 10))
+;; Output
+;; &gt; 4
+
+(display (my-engine '@lmr-invalid-moves))
+;; Output
+;; &gt; 10
+
+(display (my-engine '@lmr-search-reduction 5))
+;; Output
+;; &gt; 1
+
+(display (my-engine '@lmr-search-reduction))
+;; Output
+;; &gt; 5
+</code></pre>
+<h3 id="customizing-search-algorithm-futility-pruning">Customizing Search Algorithm - Futility Pruning</h3>
+<ul>
+<li><code>@enable-futility-pruning [&lt;New setting : Boolean&gt;]</code><ul>
+<li>Returns whether Futility Pruning is enabled or not.</li>
+<li>If you specify #t to <code>&lt;New setting&gt;</code>,
+  Futility Pruning is set to be enabled.
+  Otherwise, it is set to be disabled.</li>
+</ul>
+</li>
+<li><code>@futility-pruning-depth [&lt;New depth : Number&gt;]</code><ul>
+<li>If the remaining depth is less than or equals to this parameter,
+  Futility Pruning is executed.</li>
+<li>Return this parameter.</li>
+<li>If you specify <code>&lt;New reduction&gt;</code>, this parameter is updated.</li>
+</ul>
+</li>
+<li><code>@futility-pruning-margin [&lt;New margin : Number&gt;]</code><ul>
+<li>If the material after the move is lower than Alpha minus this parameter,
+  the move is not evaluated.</li>
+</ul>
+</li>
+</ul>
+<h6> Example </h6>
+
+<pre><code>(define my-engine (gen-engine))
+
+(display (my-engine '@enable-futility-pruning #f))
+;; Output
+;; &gt; #t
+
+(display (my-engine '@enable-futility-pruning))
+;; Output
+;; &gt; #f
+
+(display (my-engine '@futility-pruning-depth 10))
+;; Output
+;; &gt; 3
+
+(display (my-engine '@futility-pruning-depth))
+;; Output
+;; &gt; 10
+
+(display (my-engine '@futility-pruning-margin 1200))
+;; Output
+;; &gt; 400
+
+(display (my-engine '@futility-pruning-margin))
+;; Output
+;; &gt; 1200
+</code></pre>
+<h3 id="customizing-evaluation-function-piece-square-table">Customizing Evaluation Function - Piece Square Table</h3>
+<p>Returns Piece Square Table for each piece type.<br />
+If you specify <code>&lt;New table&gt;</code>, this parameter is updated.</p>
+<p><code>score = weight * value_table[square]</code></p>
+<ul>
+<li><code>@pawn-square-table-opening [&lt;New table : List&gt;]</code></li>
+<li><code>@knight-square-table-opening [&lt;New table : List&gt;]</code></li>
+<li><code>@bishop-square-table-opening [&lt;New table : List&gt;]</code></li>
+<li><code>@rook-square-table-opening [&lt;New table : List&gt;]</code></li>
+<li><code>@queen-square-table-opening [&lt;New table : List&gt;]</code></li>
+<li><code>@king-square-table-opening [&lt;New table : List&gt;]</code></li>
+<li><code>@pawn-square-table-ending [&lt;New table : List&gt;]</code></li>
+<li><code>@knight-square-table-ending [&lt;New table : List&gt;]</code></li>
+<li><code>@bishop-square-table-ending [&lt;New table : List&gt;]</code></li>
+<li><code>@rook-square-table-ending [&lt;New table : List&gt;]</code></li>
+<li><code>@queen-square-table-ending [&lt;New table : List&gt;]</code></li>
+<li><code>@king-square-table-ending [&lt;New table : List&gt;]</code></li>
+</ul>
+<h6> Example </h6>
+
+<pre><code>(define my-engine (gen-engine))
+
+(display (my-engine '@pawn-square-table-opening
+(list
+  1 2 3 4 5 6 7 8
+  11 22 33 44 55 66 77 88
+  111 222 333 444 555 666 777 888
+  1111 2222 3333 4444 5555 6666 7777 8888
+  11111 22222 33333 44444 55555 66666 77777 88888
+  111111 222222 333333 444444 555555 666666 777777 888888
+  1111111 2222222 3333333 4444444 5555555 6666666 7777777 8888888
+  11111111 22222222 33333333 44444444 55555555 66666666 77777777 88888888
+)))
+;; Output
+;; &gt; (0 0 0 0 0 0 0 0
+;; &gt; 0 0 0 0 0 0 0 0
+;; &gt; 5 10 15 20 20 15 10 5
+;; &gt; 10 20 30 40 40 30 20 10
+;; &gt; 15 30 45 60 60 45 30 15
+;; &gt; 20 40 60 80 80 60 40 20
+;; &gt; 25 50 75 100 100 75 50 25
+;; &gt; 30 60 90 120 120 90 60 30)
+
+(display (my-engine '@pawn-square-table-opening))
+;; Output
+;; &gt; (1 2 3 4 5 6 7 8
+;; &gt; 11 22 33 44 55 66 77 88
+;; &gt; 111 222 333 444 555 666 777 888
+;; &gt; 1111 2222 3333 4444 5555 6666 7777 8888
+;; &gt; 11111 22222 33333 44444 55555 66666 77777 88888
+;; &gt; 111111 222222 333333 444444 555555 666666 777777 888888
+;; &gt; 1111111 2222222 3333333 4444444 5555555 6666666 7777777 8888888
+;; &gt; 11111111 22222222 33333333 44444444 55555555 66666666 77777777
+;; &gt; 88888888)
+</code></pre>
+<h6> Weights </h6>
+
+<p>Usage : Run <code>(help "sayuri weight system")</code></p>
+<ul>
+<li>Opening Position<ul>
+<li><code>@weight-pawn-opening-position</code></li>
+<li><code>@weight-knight-opening-position</code></li>
+<li><code>@weight-bishop-opening-position</code></li>
+<li><code>@weight-rook-opening-position</code></li>
+<li><code>@weight-queen-opening-position</code></li>
+<li><code>@weight-king-opening-position</code></li>
+</ul>
+</li>
+<li>Ending Position<ul>
+<li><code>@weight-pawn-ending-position</code></li>
+<li><code>@weight-knight-ending-position</code></li>
+<li><code>@weight-bishop-ending-position</code></li>
+<li><code>@weight-rook-ending-position</code></li>
+<li><code>@weight-queen-ending-position</code></li>
+<li><code>@weight-king-ending-position</code></li>
+</ul>
+</li>
+</ul>
+<h3 id="customizing-evaluation-function-attack">Customizing Evaluation Function - Attack</h3>
+<p>Returns List composed of 7 values of attacking score.<br />
+1st: Not used. This is always 0. (for EMPTY)<br />
+2nd: Attacking Pawn.<br />
+3rd: Attacking Knight.<br />
+4th: Attacking Bishop.<br />
+5th: Attacking Rook.<br />
+6th: Attacking Queen.<br />
+7th: Attacking King.</p>
+<p>If you specify <code>&lt;New table&gt;</code>, this parameter is updated.</p>
+<p><code>score = weight * value_table[attacking_piece][attacked_piece]</code></p>
+<ul>
+<li><code>@pawn-attack-table [&lt;New table : List&gt;]</code></li>
+<li><code>@knight-attack-table [&lt;New table : List&gt;]</code></li>
+<li><code>@bishop-attack-table [&lt;New table : List&gt;]</code></li>
+<li><code>@rook-attack-table [&lt;New table : List&gt;]</code></li>
+<li><code>@queen-attack-table [&lt;New table : List&gt;]</code></li>
+<li><code>@king-attack-table [&lt;New table : List&gt;]</code></li>
+</ul>
+<h6> Example </h6>
+
+<pre><code>(define my-engine (gen-engine))
+
+(display (my-engine '@pawn-attack-table (list 1 2 3 4 5 6 7)))
+;; Output
+;; &gt; (0 10 12 14 16 18 20)
+
+(display (my-engine '@pawn-attack-table))
+;; Output
+;; &gt; (0 2 3 4 5 6 7)
+</code></pre>
+<h6> Weights </h6>
+
+<p>Usage : Run <code>(help "sayuri weight system")</code></p>
+<ul>
+<li><code>@weight-pawn-attack</code></li>
+<li><code>@weight-knight-attack</code></li>
+<li><code>@weight-bishop-attack</code></li>
+<li><code>@weight-rook-attack</code></li>
+<li><code>@weight-queen-attack</code></li>
+<li><code>@weight-king-attack</code></li>
+</ul>
+<h3 id="customizing-evaluation-function-defense">Customizing Evaluation Function - Defense</h3>
+<p>Returns List composed of 7 values of defense score.<br />
+1st: Not used. This is always 0. (for EMPTY)<br />
+2nd: Protecting Pawn.<br />
+3rd: Protecting Knight.<br />
+4th: Protecting Bishop.<br />
+5th: Protecting Rook.<br />
+6th: Protecting Queen.<br />
+7th: Protecting King.</p>
+<p>If you specify <code>&lt;New table&gt;</code>, this parameter is updated.</p>
+<p><code>score = weight * value_table[defensing_piece][defensed_piece]</code></p>
+<ul>
+<li><code>@pawn-defense-table [&lt;New table : List&gt;]</code></li>
+<li><code>@knight-defense-table [&lt;New table : List&gt;]</code></li>
+<li><code>@bishop-defense-table [&lt;New table : List&gt;]</code></li>
+<li><code>@rook-defense-table [&lt;New table : List&gt;]</code></li>
+<li><code>@queen-defense-table [&lt;New table : List&gt;]</code></li>
+<li><code>@king-defense-table [&lt;New table : List&gt;]</code></li>
+</ul>
+<h6> Example </h6>
+
+<pre><code>(define my-engine (gen-engine))
+
+(display (my-engine '@pawn-defense-table (list 1 2 3 4 5 6 7)))
+;; Output
+;; &gt; (0 10 0 0 0 0 0)
+
+(display (my-engine '@pawn-defense-table))
+;; Output
+;; &gt; (0 2 3 4 5 6 7)
+</code></pre>
+<h6> Weights </h6>
+
+<p>Usage : Run <code>(help "sayuri weight system")</code></p>
+<ul>
+<li><code>@weight-pawn-defense</code></li>
+<li><code>@weight-knight-defense</code></li>
+<li><code>@weight-bishop-defense</code></li>
+<li><code>@weight-rook-defense</code></li>
+<li><code>@weight-queen-defense</code></li>
+<li><code>@weight-king-defense</code></li>
+</ul>
+<h3 id="customizing-evaluation-function-pawn-shield">Customizing Evaluation Function - Pawn Shield</h3>
+<p>If King on f1(f8) f2(f7) g1(g8) g2(g7) h1(h8) h2(h7),
+then Pawn Shield is pawns on f g h files.<br />
+If King on a1(a8) a2(a7) b1(b8) b2(b7) c1(c8) c2(c7),
+then Pawn Shield is pawns on a b c files.</p>
+<p><code>score = weight * value_table[square]</code></p>
+<ul>
+<li><code>@pawn-shield-table [&lt;New table : List&gt;]</code><ul>
+<li>Returns Piece Square Table for Pawn Shield
+  as List composed of 64 numbers.</li>
+<li>If you specify <code>&lt;New table&gt;</code>, this parameter is updated.</li>
+</ul>
+</li>
+</ul>
+<h6> Example </h6>
+
+<pre><code>(define my-engine (gen-engine))
+
+(define table
+  (list 1 2 3 4 5 6 7 8
+        9 10 11 12 13 14 15 16
+        17 18 19 20 21 22 23 24
+        25 26 27 28 29 30 31 32
+        33 34 35 36 37 38 39 40
+        41 42 43 44 45 46 47 48
+        49 50 51 52 53 54 55 56
+        57 58 59 60 61 62 63 64))
+
+(display (my-engine '@pawn-shield-table table))
+;; Output
+;; &gt; (0 0 0 0 0 0 0 0
+;; &gt; 30 30 30 30 30 30 30 30
+;; &gt; 0 0 0 0 0 0 0 0
+;; &gt; -30 -30 -30 -30 -30 -30 -30 -30
+;; &gt; -60 -60 -60 -60 -60 -60 -60 -60
+;; &gt; -90 -90 -90 -90 -90 -90 -90 -90
+;; &gt; -60 -60 -60 -60 -60 -60 -60 -60
+;; &gt; -30 -30 -30 -30 -30 -30 -30 -30)
+
+(display (my-engine '@pawn-shield-table))
+;; Output
+;; &gt; (1 2 3 4 5 6 7 8
+;; &gt; 9 10 11 12 13 14 15 16
+;; &gt; 17 18 19 20 21 22 23 24
+;; &gt; 25 26 27 28 29 30 31 32
+;; &gt; 33 34 35 36 37 38 39 40
+;; &gt; 41 42 43 44 45 46 47 48
+;; &gt; 49 50 51 52 53 54 55 56
+;; &gt; 57 58 59 60 61 62 63 64)
+</code></pre>
+<h6> Weights </h6>
+
+<p>Usage : Run <code>(help "sayuri weight system")</code></p>
+<ul>
+<li><code>@weight-pawn-shield</code></li>
+</ul>
+<h3 id="customizing-evaluation-function-mobility">Customizing Evaluation Function - Mobility</h3>
+<p>About Sayuri's weight system : Run <code>(help "sayuri weight system")</code></p>
+<p><code>score = weight * num_of_squares_that_piece_can_move_to</code></p>
+<ul>
+<li><code>@weight-pawn-mobility [&lt;New weight : List&gt;]</code></li>
+<li><code>@weight-knight-mobility [&lt;New weight : List&gt;]</code></li>
+<li><code>@weight-bishop-mobility [&lt;New weight : List&gt;]</code></li>
+<li><code>@weight-rook-mobility [&lt;New weight : List&gt;]</code></li>
+<li><code>@weight-queen-mobility [&lt;New weight : List&gt;]</code></li>
+<li><code>@weight-king-mobility [&lt;New weight : List&gt;]</code></li>
+</ul>
+<h3 id="customizing-evaluation-function-controlling-center">Customizing Evaluation Function - Controlling Center</h3>
+<p>About Sayuri's weight system : Run <code>(help "sayuri weight system")</code></p>
+<p>Center square are c3 c4 c5 c6 d3 d4 d5 d6 e3 e4 e5 e6 f3 f4 f5 f6.</p>
+<p><code>score = weight * num_of_center_square_that_piece_attacks</code></p>
+<ul>
+<li><code>@weight-pawn-center-control [&lt;New weight : List&gt;]</code></li>
+<li><code>@weight-knight-center-control [&lt;New weight : List&gt;]</code></li>
+<li><code>@weight-bishop-center-control [&lt;New weight : List&gt;]</code></li>
+<li><code>@weight-rook-center-control [&lt;New weight : List&gt;]</code></li>
+<li><code>@weight-queen-center-control [&lt;New weight : List&gt;]</code></li>
+<li><code>@weight-king-center-control [&lt;New weight : List&gt;]</code></li>
+</ul>
+<h3 id="customizing-evaluation-function-controlling-sweet-center">Customizing Evaluation Function - Controlling Sweet Center</h3>
+<p>About Sayuri's weight system : Run <code>(help "sayuri weight system")</code></p>
+<p>Sweet Center square are d3 d4 d5 d6 e3 e4 e5 e6.</p>
+<p><code>score = weight * num_of_sweet_center_square_that_piece_attacks</code></p>
+<ul>
+<li><code>@weight-pawn-sweet-center-control [&lt;New weight : List&gt;]</code></li>
+<li><code>@weight-knight-sweet-center-control [&lt;New weight : List&gt;]</code></li>
+<li><code>@weight-bishop-sweet-center-control [&lt;New weight : List&gt;]</code></li>
+<li><code>@weight-rook-sweet-center-control [&lt;New weight : List&gt;]</code></li>
+<li><code>@weight-queen-sweet-center-control [&lt;New weight : List&gt;]</code></li>
+<li><code>@weight-king-sweet-center-control [&lt;New weight : List&gt;]</code></li>
+</ul>
+<h3 id="customizing-evaluation-function-development">Customizing Evaluation Function - Development</h3>
+<p>About Sayuri's weight system : Run <code>(help "sayuri weight system")</code></p>
+<p><code>score = weight * num_of_minor_pieces_on_starting_position</code></p>
+<ul>
+<li><code>@weight-pawn-development [&lt;New weight : List&gt;]</code></li>
+<li><code>@weight-knight-development [&lt;New weight : List&gt;]</code></li>
+<li><code>@weight-bishop-development [&lt;New weight : List&gt;]</code></li>
+<li><code>@weight-rook-development [&lt;New weight : List&gt;]</code></li>
+<li><code>@weight-queen-development [&lt;New weight : List&gt;]</code></li>
+<li><code>@weight-king-development [&lt;New weight : List&gt;]</code></li>
+</ul>
+<h3 id="customizing-evaluation-function-attack-around-enemy-king">Customizing Evaluation Function - Attack around Enemy King</h3>
+<p>About Sayuri's weight system : Run <code>(help "sayuri weight system")</code></p>
+<p><code>score = weight * num_of_squares_around_enemy_king_attacked_by_pieces.</code></p>
+<ul>
+<li><code>@weight-pawn-attack-around-king [&lt;New weight : List&gt;]</code></li>
+<li><code>@weight-knight-attack-around-king [&lt;New weight : List&gt;]</code></li>
+<li><code>@weight-bishop-attack-around-king [&lt;New weight : List&gt;]</code></li>
+<li><code>@weight-rook-attack-around-king [&lt;New weight : List&gt;]</code></li>
+<li><code>@weight-queen-attack-around-king [&lt;New weight : List&gt;]</code></li>
+<li><code>@weight-king-attack-around-king [&lt;New weight : List&gt;]</code></li>
+</ul>
+<h3 id="customizing-evaluation-function-pawn-structure">Customizing Evaluation Function - Pawn Structure</h3>
+<p>About Sayuri's weight system : Run <code>(help "sayuri weight system")</code></p>
+<ul>
+<li><code>@weight-pass-pawn [&lt;New weight : List&gt;]</code><ul>
+<li><code>score = weight * num_of_pass_pawns</code></li>
+</ul>
+</li>
+<li><code>@weight-protected-pass-pawn [&lt;New weight : List&gt;]</code><ul>
+<li><code>score = weight * num_of_protected_pass_pawns</code></li>
+</ul>
+</li>
+<li><code>@weight-double-pawn [&lt;New weight : List&gt;]</code><ul>
+<li><code>score = weight * num_of_doubled_pawns</code></li>
+</ul>
+</li>
+<li><code>@weight-iso-pawn [&lt;New weight : List&gt;]</code><ul>
+<li><code>score = weight * num_of_isorated_pawns</code></li>
+</ul>
+</li>
+</ul>
+<h3 id="customizing-evaluation-function-piece">Customizing Evaluation Function - Piece</h3>
+<p>About Sayuri's weight system : Run <code>(help "sayuri weight system")</code></p>
+<ul>
+<li><code>@weight-bishop-pair [&lt;New weight : List&gt;]</code><ul>
+<li><code>score = weight * if_bishop_pair_exists_then_1_else_0</code></li>
+</ul>
+</li>
+<li>
+<p><code>@weight-bad-bishop [&lt;New weight : List&gt;]</code></p>
+<ul>
+<li><code>score = weight * num_of_pawns_on_same_colored_square_as_bishop_on</code></li>
+</ul>
+</li>
+<li>
+<p><code>@weight-rook-pair [&lt;New weight : List&gt;]</code></p>
+</li>
+<li><code>@weight-rook-semiopen-fyle [&lt;New weight : List&gt;]</code></li>
+<li><code>@weight-rook-open-fyle [&lt;New weight : List&gt;]</code></li>
+<li><code>@weight-early-queen-starting [&lt;New weight : List&gt;]</code></li>
+<li><code>@weight-weak-square [&lt;New weight : List&gt;]</code></li>
+<li><code>@weight-castling [&lt;New weight : List&gt;]</code></li>
+<li><code>@weight-abandoned-castling [&lt;New weight : List&gt;]</code></li>
+</ul>
+</section>
+</div>
+<footer>Copyright &copy; Hironori Ishibashi</footer>
+</body>
+</html>

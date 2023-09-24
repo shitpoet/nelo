@@ -1,0 +1,74 @@
+body {
+    font-size:0.8rem;
+}
+
+h1 {
+    font-size:1rem;
+}
+
+#version {
+    font-size:0.6rem;
+    float:right;
+    margin-top:-1.4rem;
+}
+
+div#board {
+    width:100%;
+}
+
+input#moveList {
+    width:82%;
+}
+
+input#resetBtn {
+    width:15%;
+}
+
+select {
+    width:4rem;
+}
+
+#loadPosBtn, #clearMoveList {
+    display:none;
+}
+
+div#fenBlock span.keyword {
+    display:none;
+}
+
+div#historyBlock {
+    width:100%;
+    left:0;
+    padding:0;
+    margin-top:-10px;
+    position:relative;
+    height:70px;
+    overflow:vertical;
+    font-size:0.8em;
+    border-top:1px solid #aaa;
+}
+
+div#historyBlock span {
+    display:none;
+}
+
+#historyBlock ul {
+    padding-left:0;
+    margin-top:-0.5rem;
+}
+
+ul#history li {
+    list-style-type:none;
+    margin-right:0.2rem;
+    float:left;
+}
+ul#history li a {
+    margin-right:0.5rem;
+}
+
+div#status {
+    display:none;
+}
+
+select#maxSearchTime {
+}

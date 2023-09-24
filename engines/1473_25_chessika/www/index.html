@@ -1,0 +1,54 @@
+<html>
+    <head>
+        <title>Chessika</title>
+        <meta charset="utf-8"/>
+        <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=0.8">
+        <link rel="stylesheet" href="css/chessboard-0.3.0.css" />
+        <link rel="stylesheet" href="js/jquery-ui/jquery-ui.css" />
+        <link rel="stylesheet" href="style.css" />
+        <link rel="stylesheet" href="stylePhone.css" media="(max-width:768px)"/>
+        <script src="js/jquery-3.4.0.min.js"></script>
+        <script src="js/jquery-ui/jquery-ui.js"></script>
+        <script type="text/javascript" src="chessika.js"></script>
+        <script src="js/chessboard-0.3.0.js"></script>
+    </head>
+    <body>
+        <div id="main">
+            <div id="title">
+                <h1>Chessika ( ˘ ³˘)</h1>
+                <div id="version"></div>
+            </div>
+            <div class="clearHack">&nbsp;</div>
+            <div id="board"></div>
+            <div id="fenBlock">
+                <span class="keyword">History :</span><input id="moveList" type="text" /> 
+                <input type="button" id="clearMoveList" value="X" />
+                <input type="button" id="loadPosBtn" value="Load" />
+                <input type="button" id="resetBtn" value="Reset" />
+            </div>
+            <div id="settings">
+                <span class="keyword">Player :</span>
+                <select id="orientation">
+                    <option>White</option>
+                    <option>Black</option>
+                </select>
+                <span class="keyword">TC :</span> 
+                <select id="maxSearchTime"> 
+                    <option>40/60</option>
+                    <option>40/300</option>
+                </select>
+                <span class="keyword">wtime </span><span id="wtime">--</span>
+                <span class="keyword">btime </span><span id="btime">--</span>
+                <span class="keyword">movestogo </span><span id="movestogo">--</span>
+            </div>
+            <br/>
+            <div id="status">
+                <span class="keyword">Status :</span> <span id="genStatus">READY</span><br/>
+            </div>
+            <div id="historyBlock">
+                <span class="keyword">History :</span><br/>
+                <ul id="history"></ul><br/>
+            </div>
+        </div>
+    </body>
+</html>
